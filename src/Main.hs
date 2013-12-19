@@ -58,7 +58,7 @@ exec (fn:args) =
         "quit" -> exitSuccess
         "help" -> return (Just help)
         "todo" -> add "db" "todo" (Just args)
-        "g" -> get "db" (head args)
+        "g" -> get "db" args
         "d" -> deleteItem "db" args
         _ -> return (Just ["I don't recognize that command"])
 
@@ -89,17 +89,36 @@ parseDocs docs
                       numberedItems = zipWith (\n line -> show n ++ " - " ++ line) [1.. ] items
                   in numberedItems
 
-get' :: IO Pipe -> String -> String -> IO (Maybe [String])
-get' sharedPipe dbName docType = do
+remaining lst = case lst of
+    x:[] -> Nothing
+    x:xs -> Just xs
+    _ -> Nothing
+
+-- | Recursive function that builds up the selector based on args
+constructSelector :: Selector -> Maybe [String] -> Selector 
+constructSelector selector inputWords = case inputWords of
+    Nothing -> selector 
+    Just ws | ws == [] -> selector
+            | (head (head ws)) == 'p' && isInteger (tail (head ws)) -> constructSelector (merge selector [(pack "priority") =: (read $ (tail (head ws)) :: Int32)]) $ remaining ws
+    
+
+constructSelection :: [String] -> Query
+constructSelection args = let collection = pack $ head args
+                              selector = constructSelector [] $ Just $ tail args
+                          in select selector collection
+
+get' :: IO Pipe -> String -> [String] -> IO (Maybe [String])
+get' sharedPipe dbName args = do
     pipe <- liftIO sharedPipe
-    cursor <- run pipe dbName $ DB.find (select [] (pack $ docType)) 
+    let selection = constructSelection 
+    cursor <- run pipe dbName $ DB.find (constructSelection args)
     docs <- run pipe dbName $ rest (case cursor of 
                                         Right c -> c)
     case docs of 
         Left _ -> return Nothing
         Right documents -> return $ Just $ parseDocs documents
 
-get :: String -> String -> IO (Maybe [String])
+get :: String -> [String] -> IO (Maybe [String])
 get = get' sharedPipe
 
 getFieldsForType docType ws = case docType of 
@@ -111,15 +130,10 @@ isInteger st
       | length st == 1 = isNumber $ head st
       | otherwise = if isNumber (head st) == True then isInteger (tail st) else False 
 
-remaining lst = case lst of
-    x:[] -> Nothing
-    x:xs -> Just xs
-    _ -> Nothing
-
 -- ! Recursive function that builds up the document by merges
 getFieldsForTodo doc inputWords = case inputWords of 
     Nothing -> doc
-    Just ws | length ws == 0 -> doc
+    Just ws | ws == [] -> doc
             | isUpper (head (head ws)) -> merge doc [(pack "text") =: unwords ws]
             | (head (head ws)) == 'p' && isInteger (tail (head ws)) -> getFieldsForTodo (merge doc [(pack "priority") =: (read $ (tail (head ws)) :: Int32)]) $ remaining ws
             | otherwise -> getFieldsForTodo (merge doc [(pack "tag") =: (pack $ head ws)]) (remaining ws)
