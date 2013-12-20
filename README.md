@@ -141,7 +141,7 @@ Other operations
 ============
 ============
 
-Phil modes
+Modes
 ================
 mode (quiet|loud|silent)
 Quiet - don't show any secret notes
@@ -159,17 +159,16 @@ Show options for metadata
 g types
     returns:
         todo
-        cal
+        cal -- calendar events
         note
-        haha
+        haha -- jokes
         quote
         people
         goal
-        survey
-        question
-        fc
-        reminder
-
+        survey -- questions for me
+        question -- my suppressed curiosities
+        fc -- flashcard
+        reminder -- sends emails in loud mode. Also lets me check them
 
 Saved searches
 ================
