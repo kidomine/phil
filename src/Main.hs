@@ -1,9 +1,9 @@
 module Main (
       main
     , constructSelection
-    , todoTagsSelector
+    , tagsSelector
     , getFieldsForTodo
-    , todoIsValid
+    , noteIsValid
     , get
     , add
     , deleteAll
@@ -34,9 +34,7 @@ import Utils
 
 data DocType = Todo | Tag | Cal | Note | Haha | Quote | People 
              | Goal | Survey | Question | Flashcard | Reminder
-
 data DocField = TextField | TypeField | Priority | Tags
-
 data DatabaseName = ProdDB | TestDB
 
 sharedPipe = runIOE $ connect (host "127.0.0.1")
@@ -123,11 +121,10 @@ getDocField string = case string of
     "text" -> TextField
     "priority" -> Priority
 
-todoTagsSelector :: Selector -> [String] -> Selector
-todoTagsSelector selector tags = case tags of
+tagsSelector :: Selector -> [String] -> Selector
+tagsSelector selector tags = case tags of
     [] -> selector
-    t:ts -> todoTagsSelector 
-        (merge [] (selector ++ [(fieldToText Tags) =: t])) ts
+    t:ts -> tagsSelector (merge [] (selector ++ [(fieldToText Tags) =: t])) ts
 
 -- | Recursive function that builds up the selector based on args
 -- When there are no args left to examine, we check if we've 
@@ -137,7 +134,7 @@ constructTodoSelector selector inputWords tagsSoFar =
     case inputWords of
         [] -> case tagsSoFar of 
             [] -> selector
-            _ -> merge selector $ todoTagsSelector [] tagsSoFar
+            _ -> merge selector $ tagsSelector [] tagsSoFar
         firstWord:tailWords -> 
             if isPriority firstWord then
                 case firstWord of 
@@ -147,15 +144,28 @@ constructTodoSelector selector inputWords tagsSoFar =
                                 (read restOfWord :: Int32)])
                                     tailWords tagsSoFar
             else let newTags = case tagsSoFar of
-                        [] -> [firstWord]
-                        _ -> tagsSoFar ++ [firstWord]
+                                [] -> [firstWord]
+                                _ -> tagsSoFar ++ [firstWord]
                  in constructTodoSelector selector tailWords newTags
+
+constructNoteSelector :: Selector -> [String] -> [String] -> Selector
+constructNoteSelector selector inputWords tagsSoFar =
+    case inputWords of
+        [] -> case tagsSoFar of
+            [] -> selector
+            _ -> merge selector $ tagsSelector [] tagsSoFar
+        firstWord:tailWords ->
+            let newTags = case tagsSoFar of
+                            [] -> [firstWord]
+                            _ -> tagsSoFar ++ [firstWord]
+            in constructTodoSelector selector tailWords newTags
 
 
 constructSelection :: DocType -> [String] -> Query
 constructSelection docType args = 
     let constructSelector = case docType of 
             Todo -> constructTodoSelector
+            Note -> constructNoteSelector
     in case args of 
         [] -> select [] (docTypeToText docType)
         ws -> select (constructSelector [] ws []) 
@@ -188,6 +198,7 @@ get = get' sharedPipe
 getFieldsForType :: DocType -> [String] -> Document
 getFieldsForType docType inputWords = case docType of 
     Todo -> getFieldsForTodo [] inputWords
+    Note -> getFieldsForNote [] inputWords
 
 -- ! Recursive function that builds up the document by merges
 getFieldsForTodo :: Document -> [String] -> Document
@@ -208,17 +219,30 @@ getFieldsForTodo doc inputWords =
                     (pack firstWord)]) tailWords
                         where firstWord = firstLetter:tailLetters
 
+getFieldsForNote :: Document -> [String] -> Document
+getFieldsForNote doc inputWords = 
+    case inputWords of 
+    [] -> doc
+    firstWord:tailWords | isUpper (head firstWord) -> 
+                            merge doc [(fieldToText TextField) 
+                                =: unwords inputWords]
+                        | otherwise -> getFieldsForNote (merge [] doc ++ 
+                            [(fieldToText Tags) =: pack firstWord]) tailWords
+
 --
 -- Validating items
 --
 
 docIsValid :: DocType -> [String] -> Bool
 docIsValid docType inputWords = case docType of
-    Todo -> todoIsValid inputWords
+    Note -> noteIsValid inputWords
+    Todo -> noteIsValid inputWords
 
-todoIsValid :: [String] -> Bool
-todoIsValid inputWords = any 
+noteIsValid :: [String] -> Bool
+noteIsValid inputWords = any 
     (\word -> isUpper (head word)) inputWords
+
+todoIsValid = noteIsValid
 
 --
 -- Adding items
@@ -229,16 +253,14 @@ add' sharedPipe dbName docType inputWords = do
     pipe <- sharedPipe
     if docIsValid docType inputWords
         then do
-            case docType of
-                Todo -> do 
-                    let doc = getFieldsForType docType inputWords
-                    e <- access pipe master (pack $ 
-                        databaseNameToString dbName) 
-                            $ DB.insert (docTypeToText docType) doc
-                    case e of 
-                        Left _ -> return ["Couldn't insert the note."]
-                        _ -> return []
-                    return []
+            let doc = getFieldsForType docType inputWords
+            e <- access pipe master (pack $ 
+                databaseNameToString dbName) 
+                    $ DB.insert (docTypeToText docType) doc
+            case e of 
+                Left _ -> return ["Couldn't insert the note."]
+                _ -> return []
+            return []
         else do return []
 
 

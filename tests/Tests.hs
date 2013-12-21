@@ -13,18 +13,20 @@ import Database.MongoDB -- needed for :=
 import Data.Int
 
 todoCases = TestLabel "Todo test cases" ( TestList [
-               testTodoIsValid1, testTodoIsValid2, testAddTodo, testDeleteTodo, 
-               testGetTodoPriorityOne, testTodoConstructPrioritySelection,
-               testTodoTagsSelector,
-               testTodoConstructOneTagSelection, 
-               testTodoConstructTwoTagsSelection,
-               testGetTodoTags, 
-               --testGetTwoTodoTags, this test fails
-               testGetFieldsForTodo,
-               testGetTodoFromPriorityAndTag
-            ] )
+       testDeleteTodo, 
+       testGetTodoPriorityOne, testTodoConstructPrioritySelection,
+       testTagsSelector,
+       testTodoConstructOneTagSelection, 
+       testTodoConstructTwoTagsSelection,
+       testGetTodoTags, 
+       --testGetTwoTodoTags, this test fails
+       testGetFieldsForTodo,
+       testGetTodoFromPriorityAndTag
+    ] )
 
-noteCases = TestLabel "Note test cases" ( TestList [] )
+noteCases = TestLabel "Note test cases" ( TestList [
+       testNoteIsValid1, testNoteIsValid2, testGetNoteByTag, testDeleteNote
+    ] )
 
 main = runTestTT $ TestList [todoCases, noteCases]
 
@@ -32,22 +34,10 @@ main = runTestTT $ TestList [todoCases, noteCases]
 -- Validating items
 -- 
 
-testTodoIsValid1 = TestCase $ assertEqual "Todo should be invalid" False 
-    (todoIsValid ["invalid", "no", "uppercase"])
-testTodoIsValid2 = TestCase $ assertEqual "Todo should be valid" True
-    (todoIsValid ["uppercase", "Valid"])
-
--- 
--- Adding items
--- 
-
-testAddTodo = TestCase (do 
-    deleteAll TestDB Todo
-    add TestDB Todo ["first", "Here"]
-    results <- get TestDB ["todo"]
-    case results of 
-        [] -> assertEqual "Didn't get any results after adding todo" True False
-        strings -> assertEqual "DB should hold one todo" 1 (length strings))
+testNoteIsValid1 = TestCase $ assertEqual "Note should be invalid" False 
+    (noteIsValid ["invalid", "no", "uppercase"])
+testNoteIsValid2 = TestCase $ assertEqual "Note should be valid" True
+    (noteIsValid ["uppercase", "Valid"])
 
 -- 
 -- Deleting items
@@ -63,6 +53,19 @@ testDeleteTodo = TestCase (do
     case results of 
         [] -> assertEqual "Didn't get any todos from the DB" True False
         strings -> assertEqual "The second todo should have been deleted" 
+            (2, "1 - First here", "2 - Third") tup
+                where tup = (length strings, head strings, strings !! 1))
+
+testDeleteNote = TestCase (do
+    deleteAll TestDB Note
+    add TestDB Note ["tag1", "First", "here"]
+    add TestDB Note ["second", "Here"]
+    add TestDB Note ["tag2", "Third"]
+    deleteItem TestDB ["note", "2"]
+    results <- get TestDB ["note"]
+    case results of 
+        [] -> assertEqual "Didn't get any notes from the DB" True False
+        strings -> assertEqual "The second note should have been deleted" 
             (2, "1 - First here", "2 - Third") tup
                 where tup = (length strings, head strings, strings !! 1))
 
@@ -91,10 +94,10 @@ testTodoConstructPrioritySelection = TestCase (do
 -- Tags
 --
 
-testTodoTagsSelector = TestCase (do
+testTagsSelector = TestCase (do
     assertEqual "The tags selector for two tags should match..."
         [(fieldToText Tags) =: "city", (fieldToText Tags) =: "urban"]
-            (todoTagsSelector [] ["city", "urban"]))
+            (tagsSelector [] ["city", "urban"]))
 
 testTodoConstructOneTagSelection = TestCase (do
     assertEqual "The selection on tags should match this" 
@@ -159,3 +162,18 @@ testGetTodoFromPriorityAndTag = TestCase (do
             "There should be only one todo tagged 'school' and 'p1'" 
                 (1, "1 - First here") tup
                     where tup = (length strings, head strings))
+
+testGetNoteByTag = TestCase (do
+    deleteAll TestDB Note
+    add TestDB Note ["music", "First", "here"]
+    add TestDB Note ["guitar", "Second", "here"]
+    results <- get TestDB ["note", "guitar"]
+    case results of
+        [] -> assertEqual
+            "Didn't get results after adding note tagged 'guitar'"
+                True False
+        strings -> assertEqual
+            "There should be only one note tagged 'guitar'"
+                (1, "1 - Second here") tup
+                    where tup = (length strings, head strings))
+
