@@ -24,6 +24,12 @@ data DatabaseName = ProdDB | TestDB
 sharedPipe = runIOE $ connect (host "127.0.0.1")
 run p dbName act = access p master (pack dbName) act
 reservedWords = ["created"]
+{-
+ -- why does this become wrapped in an Action?
+allCollections = [Todo, Tag, Cal, Note, Haha, Quote,
+                  People, Goal, Survey, Question,
+                  Flashcard, Reminder]
+                  -}
 
 isInteger :: String -> Bool
 isInteger st

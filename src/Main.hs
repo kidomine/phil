@@ -19,6 +19,7 @@ import Add
 import Validate
 import Delete
 import Get
+import Migrate
 
 main :: IO ()
 main = bracketOnError (initializeInput defaultSettings)
@@ -61,3 +62,8 @@ help =
     , "help - show this help message"
     , "\n"
     ]
+
+migrate :: IO Pipe -> IO ()
+migrate sharedPipe = do
+    addDateCreatedToAllCollections sharedPipe ProdDB
+    putStrLn "Done migrating."
