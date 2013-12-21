@@ -17,11 +17,11 @@ cabal-version:       >=1.8
 executable phil
   main-is:             Main.hs
   other-modules:       Utils
-  build-depends:       base ==4.6.*, mongoDB ==1.4.*, mtl ==2.1.*, directory ==1.2.*, text ==0.11.*, HUnit ==1.2.*, QuickCheck ==2.6.*, haskeline ==0.7.1.*
+  build-depends:       base ==4.6.*, mongoDB ==1.4.*, mtl ==2.1.*, directory ==1.2.*, text ==0.11.*, HUnit ==1.2.*, QuickCheck ==2.6.*, haskeline ==0.7.1.*, friendly-time-0.3
   hs-source-dirs:      src, tests
 
 Test-Suite test-phil
     type:              exitcode-stdio-1.0
     main-is:           Tests.hs
     hs-source-dirs:    tests, src
-    build-depends:     base ==4.6.*, mongoDB ==1.4.*, mtl ==2.1.*, directory ==1.2.*, text ==0.11.*, HUnit ==1.2.*, QuickCheck ==2.6.*, haskeline ==0.7.1.*
+    build-depends:     base ==4.6.*, mongoDB ==1.4.*, mtl ==2.1.*, directory ==1.2.*, text ==0.11.*, HUnit ==1.2.*, QuickCheck ==2.6.*, haskeline ==0.7.1.*, friendly-time-0.3

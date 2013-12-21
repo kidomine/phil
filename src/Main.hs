@@ -30,16 +30,20 @@ import System.Console.Haskeline.IO
 import Control.Concurrent
 import Control.Exception
 import Data.Maybe (fromMaybe)
+import Data.Time.Format.Human
+import Data.Time
+
 import Utils
+
 
 data DocType = Todo | Tag | Cal | Note | Haha | Quote | People 
              | Goal | Survey | Question | Flashcard | Reminder
-data DocField = TextField | TypeField | Priority | Tags
+data DocField = TextField | TypeField | Priority | Tags | Created
 data DatabaseName = ProdDB | TestDB
 
 sharedPipe = runIOE $ connect (host "127.0.0.1")
-
 run p dbName act = access p master (pack dbName) act
+reservedWords = ["created"]
 
 main :: IO ()
 main = bracketOnError (initializeInput defaultSettings)
@@ -69,6 +73,7 @@ exec (fn:args) =
         "quit" -> exitSuccess
         "help" -> return (help)
         "todo" -> add ProdDB Todo args
+        "note" -> add ProdDB Note args
         "g" -> get ProdDB args
         "d" -> deleteItem ProdDB args
         _ -> return ["I don't recognize that command"]
@@ -83,24 +88,29 @@ help =
     ]
     
 --
--- Parsing items
+-- Preparing items for display
 --
 
-parseDoc :: Document -> String
-parseDoc doc = do
-    let String docTypeT = valueAt (fieldToText TypeField) doc
-    let docType = unpack docTypeT
-    docType
-
-parseDocs :: [Document] -> [String]
-parseDocs docs = case docs of 
+getFormattedDocs :: UTCTime -> [Document] -> [String] -> [String] -> [String]
+getFormattedDocs currentTime docs args resultsSoFar = case docs of 
     [] -> []
-    _ -> let texts = [text | String text <- 
-                          map (valueAt (fieldToText TextField)) docs]
-             items = [unpack str | str <- texts]
-             numberedItems = zipWith (\n line -> 
-                  show n ++ " - " ++ line) [1.. ] items
-         in numberedItems
+    _ -> case resultsSoFar of -- the first time looping through, just 
+                         -- create the numbers
+            [] -> getFormattedDocs currentTime docs args formattedNumbers
+                    where formattedNumbers = map (\n -> show n ++ " - ") 
+                            (take (length docs) [1..])
+            _ -> case args of 
+                    [] -> let texts = [text | String text <- 
+                                  map (valueAt (fieldToText TextField)) docs]
+                              items = [unpack str | str <- texts]
+                          in zipWith (++) resultsSoFar items
+                    firstArg:tailArgs -> case firstArg of
+                        "created" -> let bareDates = map (humanReadableTime' currentTime)
+                                            [itemDate | UTC itemDate <- (map (valueAt (fieldToText Created)) docs)]
+                                         dates = zipWith (++) bareDates (take (length bareDates) (repeat " - "))
+                                         results = zipWith (++) resultsSoFar dates
+                                     in getFormattedDocs currentTime docs tailArgs results
+                        _ -> getFormattedDocs currentTime docs tailArgs resultsSoFar
 
 isPriority :: String -> Bool
 isPriority w = case w of
@@ -114,12 +124,14 @@ fieldToText field = case field of
     TextField -> pack "text"
     TypeField -> pack "type"
     Priority -> pack "priority"
+    Created -> pack "created"
 
 getDocField :: String -> DocField
 getDocField string = case string of
     "tags" -> Tags
     "text" -> TextField
     "priority" -> Priority
+    "created" -> Created
 
 tagsSelector :: Selector -> [String] -> Selector
 tagsSelector selector tags = case tags of
@@ -135,18 +147,20 @@ constructTodoSelector selector inputWords tagsSoFar =
         [] -> case tagsSoFar of 
             [] -> selector
             _ -> merge selector $ tagsSelector [] tagsSoFar
-        firstWord:tailWords -> 
-            if isPriority firstWord then
-                case firstWord of 
-                    firstLetter:restOfWord -> 
-                        constructTodoSelector (merge 
-                            selector [(fieldToText Priority) =: 
-                                (read restOfWord :: Int32)])
-                                    tailWords tagsSoFar
-            else let newTags = case tagsSoFar of
-                                [] -> [firstWord]
-                                _ -> tagsSoFar ++ [firstWord]
-                 in constructTodoSelector selector tailWords newTags
+        firstWord:tailWords | isPriority firstWord ->
+                                case firstWord of 
+                                    firstLetter:restOfWord -> 
+                                        constructTodoSelector (merge 
+                                            selector [(fieldToText Priority) =: 
+                                                (read restOfWord :: Int32)])
+                                                    tailWords tagsSoFar
+                            | firstWord `elem` reservedWords ->
+                                constructTodoSelector selector tailWords tagsSoFar
+                            | otherwise -> let newTags = case tagsSoFar of
+                                                [] -> [firstWord]
+                                                _ -> tagsSoFar ++ [firstWord]
+                                           in constructTodoSelector 
+                                              selector tailWords newTags
 
 constructNoteSelector :: Selector -> [String] -> [String] -> Selector
 constructNoteSelector selector inputWords tagsSoFar =
@@ -154,12 +168,14 @@ constructNoteSelector selector inputWords tagsSoFar =
         [] -> case tagsSoFar of
             [] -> selector
             _ -> merge selector $ tagsSelector [] tagsSoFar
-        firstWord:tailWords ->
-            let newTags = case tagsSoFar of
-                            [] -> [firstWord]
-                            _ -> tagsSoFar ++ [firstWord]
-            in constructTodoSelector selector tailWords newTags
-
+        firstWord:tailWords | firstWord `elem` reservedWords ->
+                                 constructNoteSelector 
+                                    selector tailWords tagsSoFar
+                            | otherwise -> let newTags = case tagsSoFar of
+                                                           [] -> [firstWord]
+                                                           _ -> tagsSoFar ++ [firstWord]
+                                           in constructNoteSelector selector 
+                                                 tailWords newTags
 
 constructSelection :: DocType -> [String] -> Query
 constructSelection docType args = 
@@ -190,15 +206,20 @@ get' sharedPipe dbName arguments = do
                      Right c -> c)
             case docs of 
                 Left _ -> return []
-                Right documents -> return $ parseDocs documents
+                Right documents -> do 
+                                     currentTime <- getCurrentTime
+                                     return $ getFormattedDocs currentTime documents args []
 
 get :: DatabaseName -> [String] -> IO [String]
 get = get' sharedPipe
 
-getFieldsForType :: DocType -> [String] -> Document
-getFieldsForType docType inputWords = case docType of 
-    Todo -> getFieldsForTodo [] inputWords
-    Note -> getFieldsForNote [] inputWords
+getFieldsForType :: DocType -> [String] -> IO Document
+getFieldsForType docType inputWords = do
+    time <- getCurrentTime
+    return $ merge [] [(pack "created") =: time] ++ 
+         case docType of 
+            Todo -> getFieldsForTodo [] inputWords
+            Note -> getFieldsForNote [] inputWords
 
 -- ! Recursive function that builds up the document by merges
 getFieldsForTodo :: Document -> [String] -> Document
@@ -253,7 +274,7 @@ add' sharedPipe dbName docType inputWords = do
     pipe <- sharedPipe
     if docIsValid docType inputWords
         then do
-            let doc = getFieldsForType docType inputWords
+            doc <- getFieldsForType docType inputWords
             e <- access pipe master (pack $ 
                 databaseNameToString dbName) 
                     $ DB.insert (docTypeToText docType) doc
@@ -267,18 +288,23 @@ add' sharedPipe dbName docType inputWords = do
 add :: DatabaseName -> DocType -> [String] -> IO ([String])
 add = add' sharedPipe
 
--- | Haha check out the yin and yang below
+-- | Some strings are plural so I can e.g. type 'g notes'
+-- When I expect many notes, typeing 'g note' feels wrong.
+-- Haha check out the yin and yang below
 getDocType :: String -> DocType
 getDocType docType = case docType of
     "todo" -> Todo
+    "todos" -> Todo
     "tag" -> Tag
+    "tags" -> Tag
     "cal" -> Cal
     "rem" -> Reminder
     "note" -> Note
+    "notes" -> Note
     "haha" -> Haha
-    "quote" -> Quote
+    "quotes" -> Quote
     "survey" -> Survey
-    "goal" -> Goal
+    "goals" -> Goal
     "fc" -> Flashcard
     "q" -> Question
 
@@ -300,6 +326,7 @@ docTypeToText docType = case docType of
 -- Deleting items
 --
 
+-- TODO enable a d all rather than just d n
 d' :: IO Pipe -> DatabaseName -> [String] -> IO [String]
 d' sharedPipe dbName args = do
     pipe <- sharedPipe

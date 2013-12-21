@@ -1,3 +1,6 @@
+## Written in Haskell.
+###The extension of my brain.
+
 # How to use
 
 ### Set up
@@ -19,6 +22,7 @@ todo someday Learn to play guitar
 done 823
 
 ### Complete
+
 g todo created today
 done 823
 
@@ -33,6 +37,9 @@ g todo read
 g todo stay current on
 g todo travel to
 g todo at whole foods
+g todo created
+    1 - 4 minutes ago - Alrighty now
+    2 - 5 seconds ago - Hey
 
 
 ### Update

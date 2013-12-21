@@ -11,6 +11,7 @@ import Test.QuickCheck
 import Main hiding (main)
 import Database.MongoDB -- needed for :=
 import Data.Int
+import Data.Time.Format.Human
 
 todoCases = TestLabel "Todo test cases" ( TestList [
        testDeleteTodo, 
@@ -25,7 +26,8 @@ todoCases = TestLabel "Todo test cases" ( TestList [
     ] )
 
 noteCases = TestLabel "Note test cases" ( TestList [
-       testNoteIsValid1, testNoteIsValid2, testGetNoteByTag, testDeleteNote
+       testNoteIsValid1, testNoteIsValid2, testGetNoteByTag, testDeleteNote,
+       testNoteCreatedTime
     ] )
 
 main = runTestTT $ TestList [todoCases, noteCases]
@@ -40,6 +42,19 @@ testNoteIsValid2 = TestCase $ assertEqual "Note should be valid" True
     (noteIsValid ["uppercase", "Valid"])
 
 -- 
+-- Displaying items
+--
+
+testNoteCreatedTime = TestCase (do
+    deleteAll TestDB Note
+    add TestDB Note ["Newfangled", "technique"]
+    results <- get TestDB ["notes", "created"]
+    case results of
+        [] -> assertFailure "Didn't get any notes from the DB"
+        string:[] -> assertEqual "The note should display the cerated time"
+            "1 - just now - Newfangled technique" string)
+
+-- 
 -- Deleting items
 -- 
 
@@ -51,7 +66,7 @@ testDeleteTodo = TestCase (do
     deleteItem TestDB ["todo", "2"]
     results <- get TestDB ["todo"]
     case results of 
-        [] -> assertEqual "Didn't get any todos from the DB" True False
+        [] -> assertFailure "Didn't get any todos from the DB"
         strings -> assertEqual "The second todo should have been deleted" 
             (2, "1 - First here", "2 - Third") tup
                 where tup = (length strings, head strings, strings !! 1))
@@ -64,7 +79,7 @@ testDeleteNote = TestCase (do
     deleteItem TestDB ["note", "2"]
     results <- get TestDB ["note"]
     case results of 
-        [] -> assertEqual "Didn't get any notes from the DB" True False
+        [] -> assertFailure "Didn't get any notes from the DB"
         strings -> assertEqual "The second note should have been deleted" 
             (2, "1 - First here", "2 - Third") tup
                 where tup = (length strings, head strings, strings !! 1))
@@ -80,9 +95,8 @@ testGetTodoPriorityOne = TestCase (do
     add TestDB Todo ["tag1", "Third", "here"]
     results <- get TestDB ["todo", "p1"]
     case results of 
-        [] -> assertEqual 
+        [] -> assertFailure
             "Didn't get any results after adding todo with priority 1" 
-                True False
         strings -> assertEqual "There should be only one todo with priority 1" 
             1 (length strings))
 
@@ -118,8 +132,8 @@ testGetTodoTags = TestCase (do
     add TestDB Todo ["school", "Third", "here"]
     results <- get TestDB ["todo", "school"]
     case results of 
-        [] -> assertEqual "Didn't get results after adding todo tagged 'school'"
-            True False
+        [] -> assertFailure 
+            "Didn't get results after adding todo tagged 'school'"
         strings -> assertEqual "There should be only one todo tagged 'school'" 
             (1, "1 - Third here") tup
                 where tup = (length strings, head strings))
@@ -155,9 +169,8 @@ testGetTodoFromPriorityAndTag = TestCase (do
     add TestDB Todo ["p1", "Third", "here"]
     results <- get TestDB ["todo", "school", "p1"]
     case results of 
-        [] -> assertEqual 
+        [] -> assertFailure
             "Didn't get results after adding todo tagged 'school' and 'p1'"
-                True False
         strings -> assertEqual
             "There should be only one todo tagged 'school' and 'p1'" 
                 (1, "1 - First here") tup
@@ -169,9 +182,8 @@ testGetNoteByTag = TestCase (do
     add TestDB Note ["guitar", "Second", "here"]
     results <- get TestDB ["note", "guitar"]
     case results of
-        [] -> assertEqual
+        [] -> assertFailure 
             "Didn't get results after adding note tagged 'guitar'"
-                True False
         strings -> assertEqual
             "There should be only one note tagged 'guitar'"
                 (1, "1 - Second here") tup
