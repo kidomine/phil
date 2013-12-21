@@ -38,12 +38,14 @@ getFormattedDocs currentTime docs args resultsSoFar = case docs of
                               items = [unpack str | str <- texts]
                           in zipWith (++) resultsSoFar items
                     firstArg:tailArgs -> case firstArg of
-                        "created" -> let bareDates = map (humanReadableTime' currentTime)
-                                            [itemDate | UTC itemDate <- (map (valueAt (fieldToText Created)) docs)]
-                                         dates = zipWith (++) bareDates (take (length bareDates) (repeat " - "))
-                                         results = zipWith (++) resultsSoFar dates
-                                     in getFormattedDocs currentTime docs tailArgs results
-                        _ -> getFormattedDocs currentTime docs tailArgs resultsSoFar
+                                            "created" -> let bareDates = map (humanReadableTime' currentTime)
+                                                                [itemDate | UTC itemDate <- 
+                                                                    (map (valueAt (fieldToText Created)) docs)]
+                                                             dates = zipWith (++) bareDates (take (length bareDates)
+                                                                (repeat " - "))
+                                                             results = zipWith (++) resultsSoFar dates
+                                                         in getFormattedDocs currentTime docs tailArgs results
+                                            _ -> getFormattedDocs currentTime docs tailArgs resultsSoFar
 
 get' :: IO Pipe -> DatabaseName -> [String] -> IO [String]
 get' sharedPipe dbName arguments = do
@@ -52,16 +54,13 @@ get' sharedPipe dbName arguments = do
         docTypeArg:args -> do
             let docType = getDocType docTypeArg
                 selection = constructSelection docType args
-            cursor <- run pipe (databaseNameToString dbName)
-                $ find selection
-            docs <- run pipe (databaseNameToString dbName)
-                $ rest (case cursor of
-                     Right c -> c)
+            cursor <- run pipe dbName $ find selection
+            docs <- run pipe dbName $ rest (case cursor of Right c -> c)
             case docs of
                 Left _ -> return []
                 Right documents -> do
-                                     currentTime <- getCurrentTime
-                                     return $ getFormattedDocs currentTime documents args []
+                     currentTime <- getCurrentTime
+                     return $ getFormattedDocs currentTime documents args []
 
 get :: DatabaseName -> [String] -> IO [String]
 get = get' sharedPipe
@@ -74,48 +73,51 @@ tagsSelector selector tags = case tags of
 -- | Recursive function that builds up the selector based on args
 -- When there are no args left to examine, we check if we've
 -- recursively accumulated a list of tags
-constructTodoSelector :: Selector -> [String] -> [String] -> Selector
-constructTodoSelector selector inputWords tagsSoFar =
+constructTodoSelection :: Selector -> [String] -> [String] -> Query
+constructTodoSelection selector inputWords tagsSoFar =
     case inputWords of
         [] -> case tagsSoFar of
-            [] -> selector
-            _ -> merge selector $ tagsSelector [] tagsSoFar
+            [] -> select selector (docTypeToText Todo)
+            _ -> select (merge selector $ tagsSelector [] tagsSoFar) 
+                (docTypeToText Todo)
         firstWord:tailWords | isPriority firstWord ->
                                 case firstWord of
                                     firstLetter:restOfWord ->
-                                        constructTodoSelector (merge
+                                        constructTodoSelection (merge
                                             selector [(fieldToText Priority) =:
                                                 (read restOfWord :: Int32)])
                                                     tailWords tagsSoFar
+                            | firstWord == "tags" -> select 
+                                [(fieldToText TypeField) =: (pack "todo")] 
+                                    (docTypeToText Tag)
                             | firstWord `elem` reservedWords ->
-                                constructTodoSelector selector tailWords tagsSoFar
+                                constructTodoSelection selector tailWords 
+                                    tagsSoFar
                             | otherwise -> let newTags = case tagsSoFar of
                                                 [] -> [firstWord]
                                                 _ -> tagsSoFar ++ [firstWord]
-                                           in constructTodoSelector
+                                           in constructTodoSelection
                                               selector tailWords newTags
 
-constructNoteSelector :: Selector -> [String] -> [String] -> Selector
-constructNoteSelector selector inputWords tagsSoFar =
+constructNoteSelection :: Selector -> [String] -> [String] -> Query
+constructNoteSelection selector inputWords tagsSoFar =
     case inputWords of
         [] -> case tagsSoFar of
-            [] -> selector
-            _ -> merge selector $ tagsSelector [] tagsSoFar
+            [] -> select selector (docTypeToText Note)
+            _ -> select (merge selector $ tagsSelector [] tagsSoFar) 
+                (docTypeToText Note)
         firstWord:tailWords | firstWord `elem` reservedWords ->
-                                 constructNoteSelector
+                                 constructNoteSelection
                                     selector tailWords tagsSoFar
                             | otherwise -> let newTags = case tagsSoFar of
                                                            [] -> [firstWord]
-                                                           _ -> tagsSoFar ++ [firstWord]
-                                           in constructNoteSelector selector
+                                                           _ -> tagsSoFar ++ 
+                                                               [firstWord]
+                                           in constructNoteSelection selector
                                                  tailWords newTags
 
 constructSelection :: DocType -> [String] -> Query
 constructSelection docType args =
-    let constructSelector = case docType of
-            Todo -> constructTodoSelector
-            Note -> constructNoteSelector
-    in case args of
-        [] -> select [] (docTypeToText docType)
-        ws -> select (constructSelector [] ws [])
-            (docTypeToText docType)
+    case docType of
+            Todo -> constructTodoSelection [] args []
+            Note -> constructNoteSelection [] args []

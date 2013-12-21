@@ -22,8 +22,8 @@ data DocField = TextField | TypeField | Priority | Tags | Created
 data DatabaseName = ProdDB | TestDB
 
 sharedPipe = runIOE $ connect (host "127.0.0.1")
-run p dbName act = access p master (pack dbName) act
-reservedWords = ["created"]
+run p dbName act = access p master (pack $ databaseNameToString dbName) act
+reservedWords = ["created", "tags"] 
 
 isInteger :: String -> Bool
 isInteger st

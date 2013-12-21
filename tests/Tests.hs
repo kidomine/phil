@@ -28,7 +28,9 @@ todoCases = TestLabel "Todo test cases" ( TestList [
        testGetTodoTags, 
        --testGetTwoTodoTags, this test fails
        testGetFieldsForTodo,
-       testGetTodoFromPriorityAndTag
+       testGetTodoFromPriorityAndTag,
+       testDisplayTodoTags,
+       testTagIsNewTrue, testTagIsNewFalse
     ] )
 
 noteCases = TestLabel "Note test cases" ( TestList [
@@ -57,8 +59,19 @@ testNoteCreatedTime = TestCase (do
     results <- get TestDB ["notes", "created"]
     case results of
         [] -> assertFailure "Didn't get any notes from the DB"
-        string:[] -> assertEqual "The note should display the cerated time"
+        string:[] -> assertEqual "The note should display the creaed time"
             "1 - just now - Newfangled technique" string)
+
+testDisplayTodoTags = TestCase (do
+    deleteAll TestDB Tag
+    deleteAll TestDB Todo
+    add TestDB Todo ["255", "Code some assignment"]
+    add TestDB Todo ["228", "Finish pset"]
+    results <- get TestDB ["todo", "tags"]
+    case results of 
+        [] -> assertFailure "Didn't get any todo tags"
+        x:xs -> assertEqual "There should be two todo tags"
+            ("1 - 255", "2 - 228") (x, head xs))
 
 -- 
 -- Deleting items
@@ -195,3 +208,18 @@ testGetNoteByTag = TestCase (do
                 (1, "1 - Second here") tup
                     where tup = (length strings, head strings))
 
+testTagIsNewTrue = TestCase (do
+    deleteAll TestDB Tag
+    add TestDB Note ["music", "First", "here"]
+    pipe <- sharedPipe
+    result <- (tagIsNew pipe TestDB Note "music")
+    assertEqual "Should find that the 'music' tag already exists"
+        False result)
+
+testTagIsNewFalse = TestCase (do
+    deleteAll TestDB Tag
+    add TestDB Note ["fly", "First", "here"]
+    pipe <- sharedPipe
+    result <- (tagIsNew pipe TestDB Note "music")
+    assertEqual "Should find that the 'music' tag is new"
+        True result)

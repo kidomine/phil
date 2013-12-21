@@ -15,8 +15,7 @@ d' sharedPipe dbName args = do
     pipe <- sharedPipe
     let docType = getDocType $ head args
         n = read (args !! 1) :: Int
-    run pipe (databaseNameToString dbName) $
-        find (select [] (docTypeToText docType))
+    run pipe dbName $ find (select [] (docTypeToText docType))
             >>= rest >>= (del pipe docType n)
     return []
 

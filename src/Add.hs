@@ -1,6 +1,7 @@
 module Add (
       add
     , getFieldsForTodo
+    , tagIsNew
 ) where
 
 import Database.MongoDB
@@ -49,15 +50,42 @@ getFieldsForNote doc inputWords =
                         | otherwise -> getFieldsForNote (merge [] doc ++
                             [(fieldToText Tags) =: pack firstWord]) tailWords
 
+tagIsNew :: Pipe -> DatabaseName -> DocType -> String -> IO Bool
+tagIsNew pipe dbName docType t =
+    if (t `elem` reservedWords) then return False
+    else do
+        cursor <- run pipe dbName $ 
+            find $ select [(fieldToText TypeField) =: (docTypeToText docType),
+                  (fieldToText TextField) =: (pack t)] (docTypeToText Tag)
+        docs <- run pipe dbName $ rest (case cursor of Right c -> c)
+        case docs of 
+            Left _ -> return True -- todo raise an error instead
+            Right documents | (length documents) == 0 -> return True
+                            | otherwise -> return False
+
+addNewTag :: Pipe -> DatabaseName -> DocType -> String -> IO ()
+addNewTag pipe dbName docType t = do
+    new <- tagIsNew pipe dbName docType t
+    if new then do
+        now <- getCurrentTime
+        e <- run pipe dbName $ insert (docTypeToText Tag) $
+                [(fieldToText TextField) =: pack t,
+                 (fieldToText TypeField) =: 
+                    (docTypeToText docType),
+                 (fieldToText Created) =: now]
+        return ()
+    else
+        return ()
+
 add' :: IO Pipe -> DatabaseName -> DocType -> [String] -> IO [String]
 add' sharedPipe dbName docType inputWords = do
     pipe <- sharedPipe
     if docIsValid docType inputWords
         then do
+            mapM (addNewTag pipe dbName docType) 
+                (takeWhile (\wrd -> not $ isUpper (head wrd)) inputWords)
             doc <- getFieldsForType docType inputWords
-            e <- access pipe master (pack $
-                databaseNameToString dbName)
-                    $ insert (docTypeToText docType) doc
+            e <- run pipe dbName $ insert (docTypeToText docType) doc
             case e of
                 Left _ -> return ["Couldn't insert the note."]
                 _ -> return []
