@@ -10,6 +10,14 @@ mongod --dbpath mongoFiles
 Make sure the mongoFiles folder is backed up
 </pre>
 
+### Backup the db
+
+<pre>
+mongodump --out ~/Desktop/Dropbox/PhilBackups/dump-20131221-all
+That is, dump-<date>-<subset-of-data-backed-up>
+To restore, run mongorestore
+</pre>
+
 ### Abberviations used in this guide
 * g means get
 * everything until the first capital letter is metadata

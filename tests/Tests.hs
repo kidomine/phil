@@ -8,10 +8,16 @@ import System.IO
 import System.Directory
 import Test.HUnit     
 import Test.QuickCheck
-import Main hiding (main)
 import Database.MongoDB -- needed for :=
 import Data.Int
 import Data.Time.Format.Human
+
+import Utils
+import Validate
+import Add
+import Delete
+import Get
+import Main hiding (main)
 
 todoCases = TestLabel "Todo test cases" ( TestList [
        testDeleteTodo, 
