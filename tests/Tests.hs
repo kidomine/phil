@@ -36,7 +36,7 @@ todoCases = TestLabel "Todo test cases" ( TestList [
 
 noteCases = TestLabel "Note test cases" ( TestList [
        testNoteIsValid1, testNoteIsValid2, testGetNoteByTag, testDeleteNote,
-       testNoteCreatedTime
+       testNoteCreatedTime, testGetNoteTags
     ] )
 
 main = runTestTT $ TestList [todoCases, noteCases]
@@ -180,6 +180,19 @@ testGetTodoTags = TestCase (do
         [] -> assertFailure 
             "Didn't get results after adding todo tagged 'school'"
         strings -> assertEqual "There should be only one todo tagged 'school'" 
+            (1, "1 - Third here") tup
+                where tup = (length strings, head strings))
+
+testGetNoteTags = TestCase (do
+    deleteAll TestDB Note
+    add TestDB Note ["p1", "First", "here"]
+    add TestDB Note ["p2", "Second", "here"]
+    add TestDB Note ["school", "Third", "here"]
+    results <- get TestDB ["note", "school"]
+    case results of 
+        [] -> assertFailure 
+            "Didn't get results after adding note tagged 'school'"
+        strings -> assertEqual "There should be only one note tagged 'school'" 
             (1, "1 - Third here") tup
                 where tup = (length strings, head strings))
 

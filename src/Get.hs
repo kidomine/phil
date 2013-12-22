@@ -91,9 +91,6 @@ constructTodoSelection selector inputWords tagsSoFar =
                                 [(fieldToText DueBy) =: [pack "$gt" =: 
                                     beginningOfTime, pack "$lte" =: readDate 
                                         (head tailWords)]] (docTypeToText Todo)
-                            | firstWord == "tags" -> select 
-                                [(fieldToText TypeField) =: (pack "todo")] 
-                                    (docTypeToText Tag)
                             | wordIsReserved firstWord ->
                                 constructTodoSelection selector tailWords 
                                     tagsSoFar
@@ -122,6 +119,12 @@ constructNoteSelection selector inputWords tagsSoFar =
 
 constructSelection :: DocType -> [String] -> Query
 constructSelection docType args =
-    case docType of
-            Todo -> constructTodoSelection [] args []
-            Note -> constructNoteSelection [] args []
+    let constructSelection = case docType of
+                                Todo -> constructTodoSelection [] args []
+                                Note -> constructNoteSelection [] args []
+    in case args of
+        firstArg:tailArgs | firstArg == "tags" -> 
+                                select [(fieldToText TypeField) =: 
+                                    (docTypeToText docType)] (docTypeToText Tag)
+                          | otherwise -> constructSelection
+        _ -> constructSelection
