@@ -35,6 +35,10 @@ getFieldsForTodo doc inputWords =
                         [(fieldToText Priority) =:
                             ((read tailLetters) :: Int32)])
                                 tailWords
+            | (firstLetter:tailLetters) == "by" ->
+                getFieldsForTodo (merge doc 
+                    [(fieldToText DueBy) =: (readDate (head tailWords))])
+                        (tail tailWords)
             | otherwise -> getFieldsForTodo (merge [] doc ++
                 [(fieldToText Tags) =:
                     (pack firstWord)]) tailWords

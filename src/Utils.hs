@@ -10,22 +10,28 @@ module Utils (
     , sharedPipe
     , run
     , wordIsReserved
+    , beginningOfTime
+    , readDate
 ) where
 
 import Data.Char
 import Data.Text (pack, Text)
 import Data.List (isInfixOf)
+import Data.Time
 import Database.MongoDB
 
 data DocType = Todo | Tag | Cal | Note | Haha | Quote | People
              | Goal | Survey | Question | Flashcard | Reminder
 data DocField = TextField | TypeField | Priority | Tags | Created
+                | DueBy
 data DatabaseName = ProdDB | TestDB
 
 sharedPipe = runIOE $ connect (host "127.0.0.1")
 run p dbName act = access p master (pack $ databaseNameToString dbName) act
 reservedWords = ["created", "tags", 
-                 "today", "yesterday", "tomorrow", "on"] 
+                 "today", "yesterday", "tomorrow", "by"] 
+beginningOfTime = UTCTime (fromGregorian 2014 1 1) 
+    (timeOfDayToTime $ TimeOfDay 0 0 0)
 
 wordIsReserved :: String -> Bool
 wordIsReserved word = (word `elem` reservedWords) || (isInfixOf "/" word)
@@ -39,6 +45,13 @@ isInteger st
             if (isNumber firstChar) == True
             then (isInteger tailChars) else False
 
+readDate :: String -> UTCTime
+readDate string = let (month, day) = break (=='/') string
+                      monthNumber = read month :: Int
+                      dayNumber = read (tail day) :: Int
+                  in UTCTime (fromGregorian 2014 monthNumber dayNumber)
+                      (timeOfDayToTime $ TimeOfDay 0 0 0)
+
 databaseNameToString :: DatabaseName -> String
 databaseNameToString dbName = case dbName of
     ProdDB -> "db"
@@ -51,6 +64,7 @@ fieldToText field = case field of
     TypeField -> pack "type"
     Priority -> pack "priority"
     Created -> pack "created"
+    DueBy -> pack "dueBy"
 
 -- | Some strings are plural so I can e.g. type 'g notes'
 -- When I expect many notes, typeing 'g note' feels wrong.

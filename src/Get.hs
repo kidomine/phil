@@ -87,6 +87,10 @@ constructTodoSelection selector inputWords tagsSoFar =
                                             selector [(fieldToText Priority) =:
                                                 (read restOfWord :: Int32)])
                                                     tailWords tagsSoFar
+                            | firstWord == "by" -> select 
+                                [(fieldToText DueBy) =: [pack "$gt" =: 
+                                    beginningOfTime, pack "$lte" =: readDate 
+                                        (head tailWords)]] (docTypeToText Todo)
                             | firstWord == "tags" -> select 
                                 [(fieldToText TypeField) =: (pack "todo")] 
                                     (docTypeToText Tag)

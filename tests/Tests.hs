@@ -135,7 +135,7 @@ testGetTodoByDay = TestCase (do
         [] -> assertFailure
             "Didn't get any results after adding todos with due dates"
         strings -> assertEqual "There should be two todos due by 12/22"
-            2 (length strings))
+            1 (length strings))
 
 -- TODO test this
 testGetTodoByTomorrow = TestCase (do
