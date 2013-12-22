@@ -11,6 +11,7 @@ import Test.QuickCheck
 import Database.MongoDB -- needed for :=
 import Data.Int
 import Data.Time.Format.Human
+import Data.Text (pack)
 
 import Utils
 import Validate
@@ -155,18 +156,18 @@ testGetTodoByTomorrow = TestCase (do
 
 testTagsSelector = TestCase (do
     assertEqual "The tags selector for two tags should match..."
-        [(fieldToText Tags) =: "city", (fieldToText Tags) =: "urban"]
+        [(fieldToText Tags) =: [pack "$all" =: [pack "city", pack "urban"]]]
             (tagsSelector [] ["city", "urban"]))
 
 testTodoConstructOneTagSelection = TestCase (do
     assertEqual "The selection on tags should match this" 
-        (select ([(fieldToText Tags) =: "school"]) 
+        (select ([(fieldToText Tags) =: [pack "$all" =: ["school"]]]) 
             (docTypeToText Todo))
                 (constructSelection Todo ["school"]))
 
 testTodoConstructTwoTagsSelection = TestCase (do
     assertEqual "The selection on tags should match this" 
-        (select ([(fieldToText Tags) =: "school", (fieldToText Tags) =: "228"]) 
+        (select ([(fieldToText Tags) =: [pack "$all" =: ["school", "228"]]]) 
             (docTypeToText Todo))
                 (constructSelection Todo ["school", "228"]))
 
@@ -174,12 +175,12 @@ testGetTodoTags = TestCase (do
     deleteAll TestDB Todo
     add TestDB Todo ["p1", "First", "here"]
     add TestDB Todo ["p2", "Second", "here"]
-    add TestDB Todo ["school", "Third", "here"]
-    results <- get TestDB ["todo", "school"]
+    add TestDB Todo ["water", "Third", "here"]
+    results <- get TestDB ["todo", "water"]
     case results of 
         [] -> assertFailure 
-            "Didn't get results after adding todo tagged 'school'"
-        strings -> assertEqual "There should be only one todo tagged 'school'" 
+            "Didn't get results after adding todo tagged 'water'"
+        strings -> assertEqual "There should be only one todo tagged 'water'" 
             (1, "1 - Third here") tup
                 where tup = (length strings, head strings))
 
@@ -187,12 +188,12 @@ testGetNoteTags = TestCase (do
     deleteAll TestDB Note
     add TestDB Note ["p1", "First", "here"]
     add TestDB Note ["p2", "Second", "here"]
-    add TestDB Note ["school", "Third", "here"]
-    results <- get TestDB ["note", "school"]
+    add TestDB Note ["water", "Third", "here"]
+    results <- get TestDB ["note", "water"]
     case results of 
         [] -> assertFailure 
-            "Didn't get results after adding note tagged 'school'"
-        strings -> assertEqual "There should be only one note tagged 'school'" 
+            "Didn't get results after adding note tagged 'water'"
+        strings -> assertEqual "There should be only one note tagged 'water'" 
             (1, "1 - Third here") tup
                 where tup = (length strings, head strings))
 
@@ -200,20 +201,21 @@ testGetTwoTodoTags = TestCase (do
     deleteAll TestDB Todo
     add TestDB Todo ["p1", "school", "First", "here"]
     add TestDB Todo ["229", "Second", "here"]
-    add TestDB Todo ["school", "229", "Third", "here"]
-    results <- get TestDB ["todo", "school", "229"]
+    add TestDB Todo ["water", "229", "Third", "here"]
+    results <- get TestDB ["todo", "water", "229"]
     case results of 
         [] -> assertFailure
-            "Didn't get results after adding todo tagged 'school' and '229'"
+            "Didn't get results after adding todo tagged 'water' and '229'"
         strings -> assertEqual 
-            "There should be only one todo tagged 'school' and '229'" 
+            "There should be only one todo tagged 'water' and '229'" 
                 (1, "1 - Third here") tup
                     where tup = (length strings, head strings))
 
 testGetFieldsForTodo = TestCase (do
     assertEqual "Should get a list of fields for matching two tags"
-        [(fieldToText Tags) =: "school", (fieldToText Tags) =: "229"]
-            (getFieldsForTodo [] ["school", "229"]))
+        [(fieldToText Tags) =: [pack "school", pack "229"],
+            (fieldToText TextField) =: "First one"]
+                (getFieldsForTodo [] ["school", "229", "First", "one"] []))
 
 testGetTodoFromPriorityAndTag = TestCase (do
     deleteAll TestDB Todo
@@ -232,13 +234,13 @@ testGetTodoFromPriorityAndTag = TestCase (do
 testGetNoteByTag = TestCase (do
     deleteAll TestDB Note
     add TestDB Note ["music", "First", "here"]
-    add TestDB Note ["guitar", "Second", "here"]
-    results <- get TestDB ["note", "guitar"]
+    add TestDB Note ["water", "Second", "here"]
+    results <- get TestDB ["note", "water"]
     case results of
         [] -> assertFailure 
-            "Didn't get results after adding note tagged 'guitar'"
+            "Didn't get results after adding note tagged 'water'"
         strings -> assertEqual
-            "There should be only one note tagged 'guitar'"
+            "There should be only one note tagged 'water'"
                 (1, "1 - Second here") tup
                     where tup = (length strings, head strings))
 

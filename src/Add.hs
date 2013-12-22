@@ -5,7 +5,7 @@ module Add (
 ) where
 
 import Database.MongoDB
-import Data.Text (pack)
+import Data.Text (pack, Text)
 import Data.Time
 import Data.Char
 import Data.Int
@@ -16,43 +16,53 @@ import Validate
 getFieldsForType :: DocType -> [String] -> IO Document
 getFieldsForType docType inputWords = do
     time <- getCurrentTime
-    return $ merge [] [(pack "created") =: time] ++
+    let results = merge [] [(pack "created") =: time] ++
          case docType of
-            Todo -> getFieldsForTodo [] inputWords
-            Note -> getFieldsForNote [] inputWords
+            Todo -> getFieldsForTodo [] inputWords []
+            Note -> getFieldsForNote [] inputWords []
+    return results
 
 -- ! Recursive function that builds up the document by merges
-getFieldsForTodo :: Document -> [String] -> Document
-getFieldsForTodo doc inputWords =
+-- builds up list of tags until there are no tags left, then
+-- sets the Tags field as the list of tags (pattern match 
+-- on Array
+getFieldsForTodo :: Document -> [String] -> [Text] -> Document
+getFieldsForTodo doc inputWords tagsSoFar =
     case inputWords of
-        [] -> doc
+        [] -> case tagsSoFar of 
+                [] -> doc 
+                ts -> merge doc [(fieldToText Tags) =: ts]
         (firstLetter:tailLetters):tailWords
             | isUpper firstLetter ->
-                merge doc [(fieldToText TextField) =: unwords inputWords]
+                getFieldsForTodo (merge doc [(fieldToText TextField) =: unwords 
+                    inputWords]) [] tagsSoFar
             | firstLetter == 'p' &&
                 isInteger tailLetters ->
                     getFieldsForTodo (merge doc
                         [(fieldToText Priority) =:
                             ((read tailLetters) :: Int32)])
-                                tailWords
+                                tailWords tagsSoFar
             | (firstLetter:tailLetters) == "by" ->
                 getFieldsForTodo (merge doc 
                     [(fieldToText DueBy) =: (readDate (head tailWords))])
-                        (tail tailWords)
-            | otherwise -> getFieldsForTodo (merge [] doc ++
-                [(fieldToText Tags) =:
-                    (pack firstWord)]) tailWords
+                        (tail tailWords) tagsSoFar
+            | otherwise -> getFieldsForTodo doc tailWords 
+                (tagsSoFar ++ [pack firstWord])
                         where firstWord = firstLetter:tailLetters
 
-getFieldsForNote :: Document -> [String] -> Document
-getFieldsForNote doc inputWords =
+getFieldsForNote :: Document -> [String] -> [Text] -> Document
+getFieldsForNote doc inputWords tagsSoFar =
     case inputWords of
-    [] -> doc
-    firstWord:tailWords | isUpper (head firstWord) ->
-                            merge doc [(fieldToText TextField)
-                                =: unwords inputWords]
-                        | otherwise -> getFieldsForNote (merge [] doc ++
-                            [(fieldToText Tags) =: pack firstWord]) tailWords
+        [] -> case tagsSoFar of
+                [] -> doc
+                ts -> merge doc [(fieldToText Tags) =: ts]
+        firstWord:tailWords | isUpper (head firstWord) ->
+                                getFieldsForNote (merge doc 
+                                    [(fieldToText TextField)
+                                        =: unwords inputWords])
+                                            [] tagsSoFar
+                            | otherwise -> getFieldsForNote 
+                                doc tailWords (tagsSoFar ++ [pack firstWord])
 
 tagIsNew :: Pipe -> DatabaseName -> DocType -> String -> IO Bool
 tagIsNew pipe dbName docType t =
@@ -88,7 +98,7 @@ add' sharedPipe dbName docType inputWords = do
         then do
             mapM (addNewTag pipe dbName docType) 
                 (takeWhile (\wrd -> not $ isUpper (head wrd)) inputWords)
-            doc <- getFieldsForType docType inputWords
+            doc <- getFieldsForType docType inputWords 
             e <- run pipe dbName $ insert (docTypeToText docType) doc
             case e of
                 Left _ -> return ["Couldn't insert the note."]

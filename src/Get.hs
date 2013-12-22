@@ -24,6 +24,59 @@ isPriority w = case w of
 -- Preparing items for display
 --
 
+{-
+commaSeparatedTags :: String -> [String] -> String
+commaSeparatedTags stringSoFar tags = case tags of 
+    [] -> "[]"
+    ts -> (init ts) ++ (last ts)
+    
+    
+    
+    case stringSoFar of
+            string ++ ", " -> string
+            string -> string
+    t:ts -> commaSeparatedTags (stringSoFar ++ ", " ++ t) ts
+-}
+
+{-
+stringOfTags :: [String] -> String
+stringOfTags tags = "[" ++ ( tags) ++ "]"
+-}
+
+
+showTagsList :: String -> [String] -> String
+showTagsList listSoFar tagsRemaining =
+    case tagsRemaining of
+        [] -> case listSoFar of
+                "" -> ""
+                _ -> listSoFar ++ "] - "
+        t:ts -> case listSoFar of 
+                    "" -> showTagsList ("[" ++ t) ts
+                    _ -> showTagsList (listSoFar ++ ", " ++ t) ts
+
+-- | If a tag exists, return "tag - "
+-- otherwise, return ""
+displayTag :: Document -> String
+displayTag doc = 
+    case (look (pack "tags") doc) of
+        Left _ -> ""
+        Right tags -> let Array ts = tags
+                          tgs = [unpack tag | String tag <- ts]
+                      in showTagsList "" tgs
+--[text | String text <- Array tags]
+displayTags :: [Document] -> [String]
+displayTags docs = map displayTag docs
+{-
+    let tags = [tag | String tag <-
+            (map (valueAt (fieldToText Tags)) 
+                docs)]
+        displayedTags = zipWith (++) (map show tags)
+            (take (length tags) (repeat " - "))
+        results = zipWith (++) resultsSoFar 
+            displayedTags
+    in getFormattedDocs currentTime docs
+        (tail tailArgs) results
+        -}
 getFormattedDocs :: UTCTime -> [Document] -> [String] -> [String] -> [String]
 getFormattedDocs currentTime docs args resultsSoFar = case docs of
     [] -> []
@@ -33,19 +86,30 @@ getFormattedDocs currentTime docs args resultsSoFar = case docs of
                     where formattedNumbers = map (\n -> show n ++ " - ")
                             (take (length docs) [1..])
             _ -> case args of
-                    [] -> let texts = [text | String text <-
-                                  map (valueAt (fieldToText TextField)) docs]
-                              items = [unpack str | str <- texts]
-                          in zipWith (++) resultsSoFar items
-                    firstArg:tailArgs -> case firstArg of
-                                            "created" -> let bareDates = map (humanReadableTime' currentTime)
-                                                                [itemDate | UTC itemDate <- 
-                                                                    (map (valueAt (fieldToText Created)) docs)]
-                                                             dates = zipWith (++) bareDates (take (length bareDates)
-                                                                (repeat " - "))
-                                                             results = zipWith (++) resultsSoFar dates
-                                                         in getFormattedDocs currentTime docs tailArgs results
-                                            _ -> getFormattedDocs currentTime docs tailArgs resultsSoFar
+                   [] -> let texts = [text | String text <-
+                                 map (valueAt (fieldToText TextField)) docs]
+                             items = [unpack str | str <- texts]
+                         in zipWith (++) resultsSoFar items
+                   firstArg:tailArgs -> 
+                     case firstArg of
+                         "created" -> 
+                            let bareDates = map (humanReadableTime' 
+                                    currentTime) [itemDate | UTC itemDate <- 
+                                        (map (valueAt 
+                                            (fieldToText Created)) docs)]
+                                dates = zipWith (++) bareDates (take 
+                                   (length bareDates) (repeat " - "))
+                                results = zipWith (++) resultsSoFar dates
+                            in getFormattedDocs currentTime docs 
+                                tailArgs results
+                         "with" -> 
+                            case (head tailArgs) of 
+                             "tags" -> 
+                                getFormattedDocs currentTime docs 
+                                    (tail tailArgs) $ zipWith (++)
+                                        resultsSoFar (displayTags docs)
+                         _ -> getFormattedDocs currentTime docs tailArgs 
+                            resultsSoFar
 
 get' :: IO Pipe -> DatabaseName -> [String] -> IO [String]
 get' sharedPipe dbName arguments = do
@@ -126,5 +190,7 @@ constructSelection docType args =
         firstArg:tailArgs | firstArg == "tags" -> 
                                 select [(fieldToText TypeField) =: 
                                     (docTypeToText docType)] (docTypeToText Tag)
+                          | firstArg == "with" -> 
+                                select [] (docTypeToText docType)
                           | otherwise -> constructSelection
         _ -> constructSelection

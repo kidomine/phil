@@ -29,7 +29,8 @@ data DatabaseName = ProdDB | TestDB
 sharedPipe = runIOE $ connect (host "127.0.0.1")
 run p dbName act = access p master (pack $ databaseNameToString dbName) act
 reservedWords = ["created", "tags", 
-                 "today", "yesterday", "tomorrow", "by"] 
+                 "today", "yesterday", "tomorrow", "by",
+                 "with"] 
 beginningOfTime = UTCTime (fromGregorian 2014 1 1) 
     (timeOfDayToTime $ TimeOfDay 0 0 0)
 
