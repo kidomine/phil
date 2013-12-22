@@ -22,11 +22,12 @@ import Main hiding (main)
 todoCases = TestLabel "Todo test cases" ( TestList [
        testDeleteTodo, 
        testGetTodoPriorityOne, testTodoConstructPrioritySelection,
+       testGetTodoByDay,
        testTagsSelector,
        testTodoConstructOneTagSelection, 
        testTodoConstructTwoTagsSelection,
        testGetTodoTags, 
-       --testGetTwoTodoTags, this test fails
+       testGetTwoTodoTags,
        testGetFieldsForTodo,
        testGetTodoFromPriorityAndTag,
        testDisplayTodoTags,
@@ -123,6 +124,31 @@ testTodoConstructPrioritySelection = TestCase (do
     assertEqual "The selection on priority should match this"
         (select ([(fieldToText Priority) =: (1 :: Int32)]) (docTypeToText Todo))
             (constructSelection Todo ["p1"]))
+
+testGetTodoByDay = TestCase (do
+    deleteAll TestDB Todo
+    add TestDB Todo ["tag1", "p1", "by", "12/21", "First", "here"]
+    add TestDB Todo ["tag1", "p2", "by", "12/22", "Second", "here"]
+    add TestDB Todo ["tag2", "p2", "Third", "here"]
+    results <- get TestDB ["todo", "by", "12/21"]
+    case results of 
+        [] -> assertFailure
+            "Didn't get any results after adding todos with due dates"
+        strings -> assertEqual "There should be two todos due by 12/22"
+            2 (length strings))
+
+-- TODO test this
+testGetTodoByTomorrow = TestCase (do
+    deleteAll TestDB Todo
+    add TestDB Todo ["tag1", "p1", "by", "tomorrow", "First", "here"]
+    add TestDB Todo ["tag2", "p2", "Third", "here"]
+    results <- get TestDB ["todo", "tomorrow"]
+    case results of 
+        [] -> assertFailure
+            "Didn't get any results after adding todos with due dates"
+        strings -> assertEqual "There should be two todos due by 12/22"
+            2 (length strings))
+
 -- 
 -- Tags
 --
@@ -157,9 +183,6 @@ testGetTodoTags = TestCase (do
             (1, "1 - Third here") tup
                 where tup = (length strings, head strings))
 
-{-
- - This test fails.
- -
 testGetTwoTodoTags = TestCase (do
     deleteAll TestDB Todo
     add TestDB Todo ["p1", "school", "First", "here"]
@@ -167,14 +190,12 @@ testGetTwoTodoTags = TestCase (do
     add TestDB Todo ["school", "229", "Third", "here"]
     results <- get TestDB ["todo", "school", "229"]
     case results of 
-        [] -> assertEqual 
+        [] -> assertFailure
             "Didn't get results after adding todo tagged 'school' and '229'"
-                True False
         strings -> assertEqual 
             "There should be only one todo tagged 'school' and '229'" 
                 (1, "1 - Third here") tup
                     where tup = (length strings, head strings))
-                    -}
 
 testGetFieldsForTodo = TestCase (do
     assertEqual "Should get a list of fields for matching two tags"

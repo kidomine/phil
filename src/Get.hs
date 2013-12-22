@@ -68,7 +68,7 @@ get = get' sharedPipe
 tagsSelector :: Selector -> [String] -> Selector
 tagsSelector selector tags = case tags of
     [] -> selector
-    t:ts -> tagsSelector (merge [] (selector ++ [(fieldToText Tags) =: t])) ts
+    ts -> merge [] (selector ++ [(fieldToText Tags) =: [pack "$all" =: ts]])
 
 -- | Recursive function that builds up the selector based on args
 -- When there are no args left to examine, we check if we've
@@ -90,7 +90,7 @@ constructTodoSelection selector inputWords tagsSoFar =
                             | firstWord == "tags" -> select 
                                 [(fieldToText TypeField) =: (pack "todo")] 
                                     (docTypeToText Tag)
-                            | firstWord `elem` reservedWords ->
+                            | wordIsReserved firstWord ->
                                 constructTodoSelection selector tailWords 
                                     tagsSoFar
                             | otherwise -> let newTags = case tagsSoFar of
@@ -106,7 +106,7 @@ constructNoteSelection selector inputWords tagsSoFar =
             [] -> select selector (docTypeToText Note)
             _ -> select (merge selector $ tagsSelector [] tagsSoFar) 
                 (docTypeToText Note)
-        firstWord:tailWords | firstWord `elem` reservedWords ->
+        firstWord:tailWords | wordIsReserved firstWord ->
                                  constructNoteSelection
                                     selector tailWords tagsSoFar
                             | otherwise -> let newTags = case tagsSoFar of

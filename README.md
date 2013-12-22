@@ -45,7 +45,7 @@ done 823
 todo p3 prog 0 Read the research papers
 </pre>
 
-### View
+### Search
 <pre>
 g todo (returns a list of 1 - mytodo here); d 3
 g todo done between one week ago and now
@@ -56,20 +56,17 @@ g todo at whole foods
 g todo created
    1 - 4 minutes ago - Alrighty now
    2 - 5 seconds ago - Hey
-</pre>
-
-### Update
-alarm todo every day at 10pm
-
-### Search
-<pre>
 g todo school
 g todo 144
 g todo p1 router
 g todo created before 2 days ago
 g todo daily
-g todo due before break ends
+g todo by 1/4
+g todo by tomorrow
 </pre>
+
+### Update
+alarm todo every day at 10pm
 
 ## note
 ### Create

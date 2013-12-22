@@ -9,11 +9,12 @@ module Utils (
     , DocField (..)
     , sharedPipe
     , run
-    , reservedWords
+    , wordIsReserved
 ) where
 
 import Data.Char
 import Data.Text (pack, Text)
+import Data.List (isInfixOf)
 import Database.MongoDB
 
 data DocType = Todo | Tag | Cal | Note | Haha | Quote | People
@@ -23,7 +24,11 @@ data DatabaseName = ProdDB | TestDB
 
 sharedPipe = runIOE $ connect (host "127.0.0.1")
 run p dbName act = access p master (pack $ databaseNameToString dbName) act
-reservedWords = ["created", "tags"] 
+reservedWords = ["created", "tags", 
+                 "today", "yesterday", "tomorrow", "on"] 
+
+wordIsReserved :: String -> Bool
+wordIsReserved word = (word `elem` reservedWords) || (isInfixOf "/" word)
 
 isInteger :: String -> Bool
 isInteger st

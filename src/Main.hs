@@ -40,7 +40,8 @@ main = bracketOnError (initializeInput defaultSettings)
                                  case results of 
                                     [] -> main
                                     _ -> do queryInput hd $ 
-                                                mapM_ outputStrLn results
+                                                mapM_ outputStrLn 
+                                                    (results ++ [""])
                                             main
 
 exec :: [String] -> IO [String]
@@ -51,7 +52,8 @@ exec (fn:args) =
         "todo" -> add ProdDB Todo args
         "note" -> add ProdDB Note args
         "g" -> get ProdDB args
-        "d" -> deleteItem ProdDB args
+        "d" -> do deleteItem ProdDB args
+                  get ProdDB [(head args)]
         _ -> return ["I don't recognize that command"]
 
 -- | Prints help message

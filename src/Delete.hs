@@ -4,10 +4,11 @@ module Delete (
 ) where
 
 import Data.List hiding (find, delete)
-import Data.Text (pack)
+import Data.Text (pack, unpack)
 import Database.MongoDB
 
 import Utils
+import Get
 
 
 d' :: IO Pipe -> DatabaseName -> [String] -> IO [String]
@@ -24,6 +25,8 @@ del pipe docType n docs = do
     let collection = docTypeToText docType
     let ObjId itemId = valueAt (pack "_id") (docs !! (n-1))
     deleteOne (select [(pack "_id") =: itemId] collection)
+    --get ProdDB [(unpack $ docTypeToText docType)]
+    --return ()
 
 deleteItem = d' sharedPipe
 

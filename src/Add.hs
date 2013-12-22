@@ -52,7 +52,7 @@ getFieldsForNote doc inputWords =
 
 tagIsNew :: Pipe -> DatabaseName -> DocType -> String -> IO Bool
 tagIsNew pipe dbName docType t =
-    if (t `elem` reservedWords) then return False
+    if (wordIsReserved t) then return False
     else do
         cursor <- run pipe dbName $ 
             find $ select [(fieldToText TypeField) =: (docTypeToText docType),
