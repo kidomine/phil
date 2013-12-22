@@ -9,6 +9,17 @@ start mongod
 mongod --dbpath mongoFiles
 Make sure the mongoFiles folder is backed up
 </pre>
+I use the following bash command to back up the db.
+
+<pre>
+function md() {
+    cd ~/Desktop/Dropbox/PhilBackups
+    _now=$(date +%F--%T)
+    mkdir "$_now"
+    mongodump --out="$_now"
+    echo "Backed up to ~/Desktop/Dropbox/PhilBackups/dump-$_now"
+}
+</pre>
 
 ### Backup the db
 
