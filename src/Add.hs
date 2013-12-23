@@ -4,6 +4,8 @@ module Add (
     , tagIsNew
     , getQuestion
     , getAnswer
+    , incrementTestCount
+    , getTestCount
 ) where
 
 import Database.MongoDB
@@ -134,3 +136,44 @@ add dbName docType inputWords = do
                 _ -> return []
             return []
         else do return []
+
+getTestCount :: DatabaseName -> [String] -> IO (Maybe Int32)
+getTestCount dbName tags = do
+    pipe <- sharedPipe
+    mdoc <- run pipe dbName $ findOne $ select [(fieldToText Tags) =: 
+        [pack "$all" =: tags]]
+            (docTypeToText TestCount)
+    case mdoc of 
+        Left _ -> return Nothing
+        Right mDoc -> case mDoc of 
+                        Nothing -> return Nothing
+                        Just doc -> let Int32 count = valueAt 
+                                                (fieldToText Count) doc
+                                    in return $ Just count
+
+incrementTestCount :: DatabaseName -> [String] -> IO ()
+incrementTestCount dbName tags = do
+    pipe <- sharedPipe
+    let selection = (select [(fieldToText Tags) =: [pack "$all" =: tags]] 
+            (docTypeToText TestCount))
+    mCount <- getTestCount dbName tags
+    case mCount of
+        Nothing -> do 
+                      run pipe dbName $ insert (docTypeToText TestCount)
+                          [(fieldToText Tags) =: tags, (fieldToText Count) =: 
+                              (1 :: Int32)] 
+                      return ()
+        Just count -> do
+                        e <- run pipe dbName $ modify selection [pack "$inc" =: 
+                            [(fieldToText Count) =: (1 :: Int32)]]
+                        case e of
+                            Left _ -> error "Couldn't increment the test count"
+                            Right _ -> return ()
+
+{-
+addScore :: DatabaseName -> [String] -> ObjectId -> IO () 
+addScore dbName tags questionId = do
+    pipe <- sharedPipe
+    let doc = 
+    e <- run pipe dbName $ insert (docTypeToText Score) 
+    -}

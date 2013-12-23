@@ -56,6 +56,7 @@ exec inputState (fn:args) =
                       result <- review ProdDB args
                       return [result]
         "test" -> do
+                    incrementTestCount ProdDB args
                     docs <- getFlashcards ProdDB args
                     testLoop inputState docs True
         "g" -> get ProdDB args

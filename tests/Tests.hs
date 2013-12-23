@@ -46,7 +46,12 @@ flashcardCases = TestLabel "Flashcard test cases" ( TestList [
         testFlashcardIsValid1, testFlashcardIsValid2, testReview
     ] )
 
-main = runTestTT $ TestList [todoCases, noteCases, flashcardCases]
+scoreCases = TestLabel "Score test cases" (TestList [
+--        testAddScore, testIncrementTestCount
+        testIncrementTestCountOnce, testIncrementTestCountTwice
+    ] )
+
+main = runTestTT $ TestList [todoCases, noteCases, flashcardCases, scoreCases]
 
 -- 
 -- Validating items
@@ -301,4 +306,21 @@ testReview = TestCase (do
     assertEqual "The flashcards should be separated by two newlines"
         "What is the maximum?\n    20\n\nWhat is the minimum?\n    -3\n\nWhat is the average?\n    1\n\n"
             result)
+
+testIncrementTestCountOnce = TestCase (do
+    deleteAll TestDB TestCount 
+    incrementTestCount TestDB ["purple"]
+    mInt <- getTestCount TestDB ["purple"]
+    case mInt of
+        Nothing -> assertFailure "Didn't increment the test count"
+        Just i -> assertEqual "Incremented the test count once" 1 i)
+     
+testIncrementTestCountTwice = TestCase (do
+    deleteAll TestDB TestCount 
+    incrementTestCount TestDB ["purple"]
+    incrementTestCount TestDB ["purple"]
+    mInt <- getTestCount TestDB ["purple"]
+    case mInt of
+        Nothing -> assertFailure "Didn't increment the test count"
+        Just i -> assertEqual "Incremented the test count twice" 2 i)
 
