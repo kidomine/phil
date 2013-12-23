@@ -127,11 +127,10 @@ add' sharedPipe dbName docType inputWords = do
             doc <- getFieldsForType docType inputWords 
             e <- run pipe dbName $ insert (docTypeToText docType) doc
             case e of
-                Left _ -> return ["Couldn't insert the note."]
+                Left _ -> return ["Couldn't insert the item."] -- TODO this should be an error
                 _ -> return []
             return []
         else do return []
-
 
 add :: DatabaseName -> DocType -> [String] -> IO ([String])
 add = add' sharedPipe

@@ -24,26 +24,6 @@ isPriority w = case w of
 -- Preparing items for display
 --
 
-{-
-commaSeparatedTags :: String -> [String] -> String
-commaSeparatedTags stringSoFar tags = case tags of 
-    [] -> "[]"
-    ts -> (init ts) ++ (last ts)
-    
-    
-    
-    case stringSoFar of
-            string ++ ", " -> string
-            string -> string
-    t:ts -> commaSeparatedTags (stringSoFar ++ ", " ++ t) ts
--}
-
-{-
-stringOfTags :: [String] -> String
-stringOfTags tags = "[" ++ ( tags) ++ "]"
--}
-
-
 showTagsList :: String -> [String] -> String
 showTagsList listSoFar tagsRemaining =
     case tagsRemaining of
@@ -54,8 +34,6 @@ showTagsList listSoFar tagsRemaining =
                     "" -> showTagsList ("[" ++ t) ts
                     _ -> showTagsList (listSoFar ++ ", " ++ t) ts
 
--- | If a tag exists, return "tag - "
--- otherwise, return ""
 displayTag :: Document -> String
 displayTag doc = 
     case (look (pack "tags") doc) of
@@ -64,25 +42,14 @@ displayTag doc =
                           tgs = [unpack tag | String tag <- ts]
                       in showTagsList "" tgs
 
---[text | String text <- Array tags]
 displayTags :: [Document] -> [String]
 displayTags docs = map displayTag docs
-{-
-    let tags = [tag | String tag <-
-            (map (valueAt (fieldToText Tags)) 
-                docs)]
-        displayedTags = zipWith (++) (map show tags)
-            (take (length tags) (repeat " - "))
-        results = zipWith (++) resultsSoFar 
-            displayedTags
-    in getFormattedDocs currentTime docs
-        (tail tailArgs) results
-        -}
+
 getFormattedDocs :: UTCTime -> [Document] -> [String] -> [String] -> [String]
 getFormattedDocs currentTime docs args resultsSoFar = case docs of
     [] -> []
     _ -> case resultsSoFar of -- the first time looping through, just
-                         -- create the numbers
+                              -- create the numbers
             [] -> getFormattedDocs currentTime docs args formattedNumbers
                     where formattedNumbers = map (\n -> show n ++ " - ")
                             (take (length docs) [1..])
@@ -182,11 +149,30 @@ constructNoteSelection selector inputWords tagsSoFar =
                                            in constructNoteSelection selector
                                                  tailWords newTags
 
+constructFlashcardSelection :: Selector -> [String] -> [String] -> Query
+constructFlashcardSelection selector inputWords tagsSoFar =
+    case inputWords of
+        [] -> case tagsSoFar of
+            [] -> select selector (docTypeToText Note)
+            _ -> select (merge selector $ tagsSelector [] tagsSoFar) 
+                (docTypeToText Note)
+        firstWord:tailWords | wordIsReserved firstWord ->
+                                 constructNoteSelection
+                                    selector tailWords tagsSoFar
+                            | otherwise -> let newTags = case tagsSoFar of
+                                                           [] -> [firstWord]
+                                                           _ -> tagsSoFar ++ 
+                                                               [firstWord]
+                                           in constructNoteSelection selector
+                                                 tailWords newTags
+
 constructSelection :: DocType -> [String] -> Query
 constructSelection docType args =
     let constructSelection = case docType of
                                 Todo -> constructTodoSelection [] args []
                                 Note -> constructNoteSelection [] args []
+                                Flashcard -> constructFlashcardSelection [] 
+                                    args []
     in case args of
         firstArg:tailArgs | firstArg == "tags" -> 
                                 select [(fieldToText TypeField) =: 

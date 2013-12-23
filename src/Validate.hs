@@ -11,7 +11,8 @@ import Utils
 docIsValid :: DocType -> [String] -> Bool
 docIsValid docType inputWords = case docType of
     Note -> noteIsValid inputWords
-    Todo -> noteIsValid inputWords
+    Todo -> todoIsValid inputWords
+    Flashcard -> flashcardIsValid inputWords
 
 noteIsValid :: [String] -> Bool
 noteIsValid inputWords = any
