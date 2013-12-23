@@ -79,8 +79,8 @@ getFormattedDocs currentTime docs args resultsSoFar = case docs of
                          _ -> getFormattedDocs currentTime docs tailArgs 
                             resultsSoFar
 
-get' :: IO Pipe -> DatabaseName -> [String] -> IO [String]
-get' sharedPipe dbName arguments = do
+get :: DatabaseName -> [String] -> IO [String]
+get dbName arguments = do
     pipe <- liftIO sharedPipe
     case arguments of
         docTypeArg:args -> do
@@ -93,9 +93,6 @@ get' sharedPipe dbName arguments = do
                 Right documents -> do
                      currentTime <- getCurrentTime
                      return $ getFormattedDocs currentTime documents args []
-
-get :: DatabaseName -> [String] -> IO [String]
-get = get' sharedPipe
 
 tagsSelector :: Selector -> [String] -> Selector
 tagsSelector selector tags = case tags of

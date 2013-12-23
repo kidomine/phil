@@ -117,8 +117,8 @@ addNewTag pipe dbName docType t = do
     else
         return ()
 
-add' :: IO Pipe -> DatabaseName -> DocType -> [String] -> IO [String]
-add' sharedPipe dbName docType inputWords = do
+add :: DatabaseName -> DocType -> [String] -> IO [String]
+add dbName docType inputWords = do
     pipe <- sharedPipe
     if docIsValid docType inputWords
         then do
@@ -131,7 +131,3 @@ add' sharedPipe dbName docType inputWords = do
                 _ -> return []
             return []
         else do return []
-
-add :: DatabaseName -> DocType -> [String] -> IO ([String])
-add = add' sharedPipe
-

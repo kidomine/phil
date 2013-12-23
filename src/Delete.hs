@@ -11,8 +11,8 @@ import Utils
 import Get
 
 
-d' :: IO Pipe -> DatabaseName -> [String] -> IO [String]
-d' sharedPipe dbName args = do
+deleteItem :: DatabaseName -> [String] -> IO [String]
+deleteItem dbName args = do
     pipe <- sharedPipe
     let docType = getDocType $ head args
         n = read (args !! 1) :: Int
@@ -28,14 +28,9 @@ del pipe docType n docs = do
     --get ProdDB [(unpack $ docTypeToText docType)]
     --return ()
 
-deleteItem = d' sharedPipe
-
 -- | Delete all documents of a certain type from db
 deleteAll :: DatabaseName -> DocType -> IO [String]
-deleteAll = deleteAll' sharedPipe
-
-deleteAll' :: IO Pipe -> DatabaseName -> DocType -> IO [String]
-deleteAll' sharedPipe dbName docType = do
+deleteAll dbName docType = do
     pipe <- sharedPipe
     e <- access pipe master (pack $ databaseNameToString dbName)
         $ delete (select [] (docTypeToText docType))
