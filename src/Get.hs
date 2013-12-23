@@ -63,6 +63,7 @@ displayTag doc =
         Right tags -> let Array ts = tags
                           tgs = [unpack tag | String tag <- ts]
                       in showTagsList "" tgs
+
 --[text | String text <- Array tags]
 displayTags :: [Document] -> [String]
 displayTags docs = map displayTag docs

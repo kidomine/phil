@@ -32,7 +32,8 @@ todoCases = TestLabel "Todo test cases" ( TestList [
        testGetFieldsForTodo,
        testGetTodoFromPriorityAndTag,
        testDisplayTodoTags,
-       testTagIsNewTrue, testTagIsNewFalse
+       testTagIsNewTrue, testTagIsNewFalse,
+       testDisplayTodoWithTags
     ] )
 
 noteCases = TestLabel "Note test cases" ( TestList [
@@ -75,6 +76,17 @@ testDisplayTodoTags = TestCase (do
         x:xs -> assertEqual "There should be two todo tags"
             ("1 - 255", "2 - 228") (x, head xs))
 
+testDisplayTodoWithTags = TestCase (do
+    deleteAll TestDB Tag
+    deleteAll TestDB Todo
+    add TestDB Todo ["255", "Code some assignment"]
+    add TestDB Todo ["228", "school", "Finish pset"]
+    results <- get TestDB ["todo", "with", "tags"]
+    case results of 
+        [] -> assertFailure "Didn't get any todos with tags"
+        x:xs -> assertEqual "There should be two todos with tags"
+            ("1 - [255] - Code some assignment", "2 - [228, school] - Finish pset") 
+                (x, head xs))
 -- 
 -- Deleting items
 -- 

@@ -24,8 +24,7 @@ getFieldsForType docType inputWords = do
 
 -- ! Recursive function that builds up the document by merges
 -- builds up list of tags until there are no tags left, then
--- sets the Tags field as the list of tags (pattern match 
--- on Array
+-- sets the Tags field as the list of tags
 getFieldsForTodo :: Document -> [String] -> [Text] -> Document
 getFieldsForTodo doc inputWords tagsSoFar =
     case inputWords of
