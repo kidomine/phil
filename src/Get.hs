@@ -2,6 +2,7 @@ module Get (
       get
     , constructSelection
     , tagsSelector
+    , getFlashcards
 ) where
 
 import Database.MongoDB
@@ -93,6 +94,17 @@ get dbName arguments = do
                 Right documents -> do
                      currentTime <- getCurrentTime
                      return $ getFormattedDocs currentTime documents args []
+
+getFlashcards :: DatabaseName -> [String] -> IO [Document]
+getFlashcards dbName args = do
+    pipe <- liftIO sharedPipe
+    let selection = select [(fieldToText Tags) =: [pack "$all" =: args]]
+                        (docTypeToText Flashcard)
+    cursor <- run pipe dbName $ find selection
+    mdocs <- run pipe dbName $ rest (case cursor of Right c -> c)
+    case mdocs of 
+        Left _ -> return []
+        Right docs -> return docs
 
 -- TODO this is awkward. just use a one-liner like in Review
 tagsSelector :: Selector -> [String] -> Selector

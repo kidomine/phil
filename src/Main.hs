@@ -55,17 +55,37 @@ exec inputState (fn:args) =
         "review" -> do 
                       result <- review ProdDB args
                       return [result]
-        {-
-        "test" -> do 
-                   minput <- queryInput inputState (getInputLine "(y|n) "
-                   case minput of
-                       Nothing -> return ()
-                       Just "y" -> 
-                       -}
+        "test" -> do
+                    docs <- getFlashcards ProdDB args
+                    testLoop inputState docs True
         "g" -> get ProdDB args
         "d" -> do deleteItem ProdDB args
                   get ProdDB [(head args)]
         _ -> return ["I don't recognize that command"]
+
+-- | Recursive. For each question, print it, and get a y/n response
+--
+testLoop :: InputState -> [Document] -> Bool -> IO [String]
+testLoop inputState docs isQuestion = case docs of 
+    doc:ds -> case isQuestion of
+        True -> do 
+                    putStrLn "Question\n-----------"
+                    let String question = valueAt (fieldToText Question) doc
+                    minput <- queryInput inputState (getInputLine 
+                        $ (unpack question) ++ "\n\n")
+                    testLoop inputState docs False
+        False -> do 
+                    putStrLn "Answer\n-----------"
+                    let String answer = valueAt (fieldToText Answer) doc
+                    minput <- queryInput inputState (getInputLine 
+                        $ (unpack answer) ++ "\n\n    y|n\n\n")
+                    case minput of
+                        Just "y" -> do putStrLn "\n\n"
+                                       testLoop inputState ds True
+                        Just "n" -> do putStrLn "\n\n"
+                                       testLoop inputState ds True
+    [] -> return []
+                        
 
 -- | Prints help message
 help :: [String]
