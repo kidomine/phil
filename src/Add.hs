@@ -2,6 +2,8 @@ module Add (
       add
     , getFieldsForTodo
     , tagIsNew
+    , getQuestion
+    , getAnswer
 ) where
 
 import Database.MongoDB
@@ -20,6 +22,7 @@ getFieldsForType docType inputWords = do
          case docType of
             Todo -> getFieldsForTodo [] inputWords []
             Note -> getFieldsForNote [] inputWords []
+            Flashcard -> getFieldsForFlashcard [] inputWords []
     return results
 
 -- ! Recursive function that builds up the document by merges
@@ -61,6 +64,30 @@ getFieldsForNote doc inputWords tagsSoFar =
                                         =: unwords inputWords])
                                             [] tagsSoFar
                             | otherwise -> getFieldsForNote 
+                                doc tailWords (tagsSoFar ++ [pack firstWord])
+
+getAnswer :: String -> String
+getAnswer line = let (_, answerWithQuestionMark) = break (=='?') line
+                 in tail answerWithQuestionMark
+
+getQuestion :: String -> String
+getQuestion line = let (question, _) = break (=='?') line
+                   in question
+
+getFieldsForFlashcard :: Document -> [String] -> [Text] -> Document
+getFieldsForFlashcard doc inputWords tagsSoFar =
+    case inputWords of
+        [] -> case tagsSoFar of
+                [] -> doc
+                ts -> merge doc [(fieldToText Tags) =: ts]
+        firstWord:tailWords | isUpper (head firstWord) ->
+                                getFieldsForFlashcard (merge doc 
+                                    [(fieldToText Question)
+                                        =: getQuestion (unwords inputWords),
+                                     (fieldToText Answer)
+                                        =: getAnswer (unwords inputWords)])
+                                            [] tagsSoFar
+                            | otherwise -> getFieldsForFlashcard
                                 doc tailWords (tagsSoFar ++ [pack firstWord])
 
 tagIsNew :: Pipe -> DatabaseName -> DocType -> String -> IO Bool

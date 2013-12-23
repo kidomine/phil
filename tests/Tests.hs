@@ -41,7 +41,11 @@ noteCases = TestLabel "Note test cases" ( TestList [
        testNoteCreatedTime, testGetNoteTags
     ] )
 
-main = runTestTT $ TestList [todoCases, noteCases]
+flashcardCases = TestLabel "Flashcard test cases" ( TestList [
+        testFlashcardIsValid1, testFlashcardIsValid2
+    ] )
+
+main = runTestTT $ TestList [todoCases, noteCases, flashcardCases]
 
 -- 
 -- Validating items
@@ -52,6 +56,16 @@ testNoteIsValid1 = TestCase $ assertEqual "Note should be invalid" False
 testNoteIsValid2 = TestCase $ assertEqual "Note should be valid" True
     (noteIsValid ["uppercase", "Valid"])
 
+testFlashcardIsValid1 = TestCase $ assertEqual "Flashcard should be invalid" 
+    False (flashcardIsValid ["invalid", "No", "question", "mark"])
+testFlashcardIsValid2 = TestCase $ assertEqual "Flashcard should be valid"
+    True (flashcardIsValid ["uppercase", "Question?", "yes"])
+
+testGetQuestion = TestCase $ assertEqual "Should get question" 
+    "Why is the sky blue" $ getQuestion "Why is the sky blue? just cuz."
+
+testGetAnswer = TestCase $ assertEqual "Should get answer" 
+    "just cuz." $ getAnswer "Why is the sky blue? just cuz."
 -- 
 -- Displaying items
 --

@@ -21,9 +21,9 @@ import Data.Time
 import Database.MongoDB
 
 data DocType = Todo | Tag | Cal | Note | Haha | Quote | People
-             | Goal | Survey | Question | Flashcard | Reminder
+             | Goal | Survey | Flashcard | Reminder
 data DocField = TextField | TypeField | Priority | Tags | Created
-                | DueBy
+                | DueBy | Question | Answer
 data DatabaseName = ProdDB | TestDB
 
 sharedPipe = runIOE $ connect (host "127.0.0.1")
@@ -66,6 +66,8 @@ fieldToText field = case field of
     Priority -> pack "priority"
     Created -> pack "created"
     DueBy -> pack "dueBy"
+    Question -> pack "question"
+    Answer -> pack "answer"
 
 -- | Some strings are plural so I can e.g. type 'g notes'
 -- When I expect many notes, typeing 'g note' feels wrong.
@@ -85,7 +87,6 @@ getDocType docType = case docType of
     "survey" -> Survey
     "goals" -> Goal
     "fc" -> Flashcard
-    "q" -> Question
 
 docTypeToText :: DocType -> Text
 docTypeToText docType = case docType of
@@ -96,7 +97,6 @@ docTypeToText docType = case docType of
     Haha -> pack "haha"
     Quote -> pack "quote"
     Survey -> pack "survey"
-    Question -> pack "q"
     Flashcard -> pack "fc"
     Reminder -> pack "rem"
     Goal -> pack "goal"

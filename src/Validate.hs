@@ -1,6 +1,7 @@
 module Validate (
       docIsValid
     , noteIsValid
+    , flashcardIsValid
 ) where
 
 import Data.Char
@@ -17,3 +18,6 @@ noteIsValid inputWords = any
     (\word -> isUpper (head word)) inputWords
 
 todoIsValid = noteIsValid
+
+flashcardIsValid inputWords = noteIsValid inputWords && (any (=='?')
+    (unlines inputWords))

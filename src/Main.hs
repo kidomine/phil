@@ -51,6 +51,7 @@ exec (fn:args) =
         "help" -> return (help)
         "todo" -> add ProdDB Todo args
         "note" -> add ProdDB Note args
+        "fc" -> add ProdDB Flashcard args
         "g" -> get ProdDB args
         "d" -> do deleteItem ProdDB args
                   get ProdDB [(head args)]
