@@ -19,6 +19,7 @@ import Add
 import Delete
 import Get
 import Migrate
+import Review
 
 main :: IO ()
 main = bracketOnError (initializeInput defaultSettings)
@@ -50,8 +51,10 @@ exec inputState (fn:args) =
         "help" -> return (help)
         "todo" -> add ProdDB Todo args
         "note" -> add ProdDB Note args
-        "fc" -> do add ProdDB Flashcard args
-        --"review" -> 
+        "fc" -> add ProdDB Flashcard args
+        "review" -> do 
+                      result <- review ProdDB args
+                      return [result]
         {-
         "test" -> do 
                    minput <- queryInput inputState (getInputLine "(y|n) "

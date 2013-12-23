@@ -68,7 +68,10 @@ getFieldsForNote doc inputWords tagsSoFar =
 
 getAnswer :: String -> String
 getAnswer line = let (_, answerWithQuestionMark) = break (=='?') line
-                 in tail answerWithQuestionMark
+                 in case answerWithQuestionMark of
+                        '?':' ':' ':answer -> answer
+                        '?':' ':answer -> answer
+                        '?':answer -> answer
 
 getQuestion :: String -> String
 getQuestion line = let (question, _) = break (=='?') line
@@ -106,16 +109,16 @@ tagIsNew pipe dbName docType t =
 addNewTag :: Pipe -> DatabaseName -> DocType -> String -> IO ()
 addNewTag pipe dbName docType t = do
     new <- tagIsNew pipe dbName docType t
-    if new then do
-        now <- getCurrentTime
-        e <- run pipe dbName $ insert (docTypeToText Tag) $
-                [(fieldToText TextField) =: pack t,
-                 (fieldToText TypeField) =: 
-                    (docTypeToText docType),
-                 (fieldToText Created) =: now]
-        return ()
-    else
-        return ()
+    if new 
+        then do now <- getCurrentTime
+                e <- run pipe dbName $ insert (docTypeToText Tag) $
+                        [(fieldToText TextField) =: pack t,
+                         (fieldToText TypeField) =: 
+                            (docTypeToText docType),
+                         (fieldToText Created) =: now]
+                return ()
+        else
+            return ()
 
 add :: DatabaseName -> DocType -> [String] -> IO [String]
 add dbName docType inputWords = do

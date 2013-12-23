@@ -18,6 +18,7 @@ import Validate
 import Add
 import Delete
 import Get
+import Review
 import Main hiding (main)
 
 todoCases = TestLabel "Todo test cases" ( TestList [
@@ -42,7 +43,7 @@ noteCases = TestLabel "Note test cases" ( TestList [
     ] )
 
 flashcardCases = TestLabel "Flashcard test cases" ( TestList [
-        testFlashcardIsValid1, testFlashcardIsValid2
+        testFlashcardIsValid1, testFlashcardIsValid2, testReview
     ] )
 
 main = runTestTT $ TestList [todoCases, noteCases, flashcardCases]
@@ -285,3 +286,19 @@ testTagIsNewFalse = TestCase (do
     result <- (tagIsNew pipe TestDB Note "music")
     assertEqual "Should find that the 'music' tag is new"
         True result)
+
+--
+-- Flashcards
+--
+
+testReview = TestCase (do
+    deleteAll TestDB Flashcard
+    add TestDB Flashcard ["229", "lect1", "What", "is", "the", "maximum?", "20"]
+    add TestDB Flashcard ["229", "lect1", "What", "is", "the", "minimum?", "-3"]
+    add TestDB Flashcard ["229", "lect2", "What", "is", "the", "average?", "1"]
+    pipe <- sharedPipe
+    result <- review TestDB ["229"]
+    assertEqual "The flashcards should be separated by two newlines"
+        "What is the maximum?\n    20\n\nWhat is the minimum?\n    -3\n\nWhat is the average?\n    1\n\n"
+            result)
+

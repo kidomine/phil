@@ -94,6 +94,7 @@ get dbName arguments = do
                      currentTime <- getCurrentTime
                      return $ getFormattedDocs currentTime documents args []
 
+-- TODO this is awkward. just use a one-liner like in Review
 tagsSelector :: Selector -> [String] -> Selector
 tagsSelector selector tags = case tags of
     [] -> selector
@@ -146,30 +147,11 @@ constructNoteSelection selector inputWords tagsSoFar =
                                            in constructNoteSelection selector
                                                  tailWords newTags
 
-constructFlashcardSelection :: Selector -> [String] -> [String] -> Query
-constructFlashcardSelection selector inputWords tagsSoFar =
-    case inputWords of
-        [] -> case tagsSoFar of
-            [] -> select selector (docTypeToText Note)
-            _ -> select (merge selector $ tagsSelector [] tagsSoFar) 
-                (docTypeToText Note)
-        firstWord:tailWords | wordIsReserved firstWord ->
-                                 constructNoteSelection
-                                    selector tailWords tagsSoFar
-                            | otherwise -> let newTags = case tagsSoFar of
-                                                           [] -> [firstWord]
-                                                           _ -> tagsSoFar ++ 
-                                                               [firstWord]
-                                           in constructNoteSelection selector
-                                                 tailWords newTags
-
 constructSelection :: DocType -> [String] -> Query
 constructSelection docType args =
     let constructSelection = case docType of
                                 Todo -> constructTodoSelection [] args []
                                 Note -> constructNoteSelection [] args []
-                                Flashcard -> constructFlashcardSelection [] 
-                                    args []
     in case args of
         firstArg:tailArgs | firstArg == "tags" -> 
                                 select [(fieldToText TypeField) =: 
