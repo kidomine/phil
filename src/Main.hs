@@ -88,9 +88,7 @@ testLoop inputState docs tags testCount isQuestion =
                     minput <- queryInput inputState (getInputLine 
                         $ (unpack answer) ++ "\n\n")
                     case minput of
-                        Just "y" -> answeredQuestionCorrectly inputState ds tags
-                            testCount questionId
-                        Just "" -> answeredQuestionCorrectly inputState ds tags 
+                        Just "" -> answeredQuestionCorrectly inputState ds tags
                             testCount questionId
                         Just "n" -> answeredQuestionIncorrectly inputState docs 
                             tags testCount questionId

@@ -5,10 +5,12 @@
 
 ### Set up
 <pre>
-start mongod
 mongod --dbpath mongoFiles
 Make sure the mongoFiles folder is backed up
 </pre>
+
+### Backup the db
+
 I use the following bash command to back up the db.
 
 <pre>
@@ -19,13 +21,7 @@ function md() {
     mongodump --out="$_now"
     echo "Backed up to ~/Desktop/Dropbox/PhilBackups/dump-$_now"
 }
-</pre>
 
-### Backup the db
-
-<pre>
-mongodump --out ~/Desktop/Dropbox/PhilBackups/dump-20131221-all
-That is, dump-<date>-<subset-of-data-backed-up>
 To restore, run mongorestore
 </pre>
 
@@ -141,8 +137,10 @@ test 144
 test 144 created yesterday
 test 144 hardest first
 > What should the buffer size be?
-  (I hit the space bar to see the answer)
-(y|n) depending on whether I got it right or wrong
+Hit return to see the answer
+> B * RTT
+Hit return if you got it right, "n" if you
+got it wrong.
 </pre>
 
 ## Quote
