@@ -21,6 +21,7 @@ import Delete
 import Get
 import Migrate
 import Review
+import Validate
 
 main :: IO ()
 main = bracketOnError (initializeInput defaultSettings)
@@ -67,7 +68,8 @@ exec inputState (fn:args) =
         "g" -> get ProdDB args
         "d" -> do deleteItem ProdDB args
                   get ProdDB [(head args)]
-        _ -> return ["I don't recognize that command"]
+        _ | eventIsValid (fn:args) -> add ProdDB Event (fn:args)
+          | otherwise -> return ["I don't recognize that command"]
 
 -- | Recursive. For each question, print it, and get a y/n response
 testLoop :: InputState -> [Document] -> [String] -> Int32 -> Bool -> IO [String]

@@ -28,6 +28,7 @@ getFieldsForType docType inputWords = do
             Todo -> getFieldsForTodo [] inputWords []
             Note -> getFieldsForNote [] inputWords []
             Flashcard -> getFieldsForFlashcard [] inputWords []
+            Event -> getFieldsForEvent inputWords
     return results
 
 -- ! Recursive function that builds up the document by merges
@@ -70,6 +71,15 @@ getFieldsForNote doc inputWords tagsSoFar =
                                             [] tagsSoFar
                             | otherwise -> getFieldsForNote 
                                 doc tailWords (tagsSoFar ++ [pack firstWord])
+
+getFieldsForEvent :: [String] -> Document
+getFieldsForEvent inputWords = 
+  case (splitDateTimeRangeTagsAndText $ unwords inputWords) of
+    Just (day, startTime, endTime, tags, text) ->
+       [(fieldToText StartDate) =: (UTCTime day startTime),
+       (fieldToText EndDate) =: (UTCTime day endTime),
+       (fieldToText Tags) =: tags,
+       (fieldToText TextField) =: text]
 
 getAnswer :: String -> String
 getAnswer line = let (_, answerWithQuestionMark) = break (=='?') line
@@ -133,6 +143,7 @@ add dbName docType inputWords = do
             mapM (addNewTag pipe dbName docType) 
                 (takeWhile (\wrd -> not $ isUpper (head wrd)) inputWords)
             doc <- getFieldsForType docType inputWords 
+            --putStrLn $ "Inserting doc " ++ (show doc)
             e <- run pipe dbName $ insert (docTypeToText docType) doc
             case e of
                 Left _ -> return ["Couldn't insert the item."] -- TODO this should be an error
@@ -195,23 +206,16 @@ addScore dbName tags testCount questionId score = do
             (fieldToText TestCountField) =: testCount, (fieldToText QuestionId) 
                 =: questionId, (fieldToText ScoreField) =: score]
     case e of 
-        Left failure -> do
-                            putStrLn $ show failure
-                            return ()
         Right score -> return ()
 
 showTestScore :: DatabaseName -> Int32 -> IO [String]
 showTestScore dbName testCount = do
     pipe <- sharedPipe
     let matchSelect = [(fieldToText TestCountField) =: testCount]
-    let pipeline = [ [pack "$match" =: matchSelect],
-                        [pack "$group" =: [pack "_id" =: empty, pack "sum" =: 
-                            [ pack "$sum" =: "$score"]]] ]
+    let pipeline = [ [pack "$match" =: matchSelect,
+                        pack "$group" =: [pack "_id" =: empty, pack "sum" =: 
+                            [ pack "$sum" =: "$count"]]] ]
     docs <- run pipe dbName $ aggregate (docTypeToText Score) pipeline
     case docs of 
-        Left failure -> do
-                            putStrLn $ show failure
-                            return ["failed"]
-        Right ds -> do 
-                        let Int32 score = valueAt (pack "sum") (head ds)
-                        return ["score is " ++ show score]
+        --Left msg -> return [msg]
+        Right mDoc -> return ["success"] 

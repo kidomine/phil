@@ -57,9 +57,9 @@ todo p3 prog 0 Read the research papers
 g todo (returns a list of 1 - mytodo here); d 3
 g todo done between one week ago and now
 g todo read
-g todo stay current on
-g todo travel to
-g todo at whole foods
+g todo stay-current-on
+g todo travel
+g todo at-whole-foods
 g todo created
    1 - 4 minutes ago - Alrighty now
    2 - 5 seconds ago - Hey
@@ -70,6 +70,7 @@ g todo created before 2 days ago
 g todo daily
 g todo by 1/4
 g todo by tomorrow
+g todo 228 Pset
 </pre>
 
 ### Update
@@ -83,6 +84,15 @@ note Omgomgomgo I'm soooo excited for Winter quarter!
 
 ### Search
 
+<pre>
+tags are lowercase (or numbers)
+keywords to search on begin at the first capitalized word
+searches are all not case-sensitive
+
+g note 228 Bayes l2
+g note Haha (searches by content)
+g note haha (searches by tag)
+</pre>
 
 ## list
 
@@ -143,22 +153,6 @@ Hit return if you got it right, "n" if you
 got it wrong.
 </pre>
 
-## Quote
-### Create
-<pre>
-quote ben-franklin Generalizations are generally wrong
-</pre>
-
-### Search
-<pre>
-g quote text generalization
-</pre>
-
-### Delete
-<pre>
-d quote 90
-</pre>
-
 
 # Other operations
 
@@ -182,16 +176,10 @@ is released.
 g types
     returns:
         todo
-        cal -- calendar events
+        cal
         note
-        haha -- jokes
-        quote
-        people
         goal
-        survey -- questions for me
-        question -- my suppressed curiosities
-        fc -- flashcard
-        reminder -- sends emails in loud mode. Also lets me check them
+        fc
 </pre>
 
 ### Saved searches

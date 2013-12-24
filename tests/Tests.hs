@@ -23,11 +23,8 @@ import Main hiding (main)
 
 todoCases = TestLabel "Todo test cases" ( TestList [
        testDeleteTodo, 
-       testGetTodoPriorityOne, testTodoConstructPrioritySelection,
+       testGetTodoPriorityOne,
        testGetTodoByDay,
-       testTagsSelector,
-       testTodoConstructOneTagSelection, 
-       testTodoConstructTwoTagsSelection,
        testGetTodoTags, 
        testGetTwoTodoTags,
        testGetFieldsForTodo,
@@ -47,11 +44,16 @@ flashcardCases = TestLabel "Flashcard test cases" ( TestList [
     ] )
 
 scoreCases = TestLabel "Score test cases" (TestList [
---        testAddScore, testIncrementTestCount
         testIncrementTestCountOnce, testIncrementTestCountTwice
     ] )
 
-main = runTestTT $ TestList [todoCases, noteCases, flashcardCases, scoreCases]
+eventCases = TestLabel "Event test cases" (TestList [
+    testTimeRangesAreValid, testTimeRangesAreInvalid, testEventIsValid
+  ] )
+  
+
+main = runTestTT $ TestList [todoCases, noteCases, flashcardCases, scoreCases,
+                             eventCases]
 
 -- 
 -- Validating items
@@ -82,7 +84,7 @@ testNoteCreatedTime = TestCase (do
     results <- get TestDB ["notes", "created"]
     case results of
         [] -> assertFailure "Didn't get any notes from the DB"
-        string:[] -> assertEqual "The note should display the creaed time"
+        string:[] -> assertEqual "The note should display the created time"
             "1 - just now - Newfangled technique" string)
 
 testDisplayTodoTags = TestCase (do
@@ -113,7 +115,7 @@ testDisplayTodoWithTags = TestCase (do
 
 testDeleteTodo = TestCase (do
     deleteAll TestDB Todo
-    add TestDB Todo ["tag1", "First", "here"]
+    add TestDB Todo ["tag1", "First", "shimmer"]
     add TestDB Todo ["second", "Here"]
     add TestDB Todo ["tag2", "Third"]
     deleteItem TestDB ["todo", "2"]
@@ -121,12 +123,12 @@ testDeleteTodo = TestCase (do
     case results of 
         [] -> assertFailure "Didn't get any todos from the DB"
         strings -> assertEqual "The second todo should have been deleted" 
-            (2, "1 - First here", "2 - Third") tup
+            (2, "1 - First shimmer", "2 - Third") tup
                 where tup = (length strings, head strings, strings !! 1))
 
 testDeleteNote = TestCase (do
     deleteAll TestDB Note
-    add TestDB Note ["tag1", "First", "here"]
+    add TestDB Note ["tag1", "First", "glitter"]
     add TestDB Note ["second", "Here"]
     add TestDB Note ["tag2", "Third"]
     deleteItem TestDB ["note", "2"]
@@ -134,7 +136,7 @@ testDeleteNote = TestCase (do
     case results of 
         [] -> assertFailure "Didn't get any notes from the DB"
         strings -> assertEqual "The second note should have been deleted" 
-            (2, "1 - First here", "2 - Third") tup
+            (2, "1 - First glitter", "2 - Third") tup
                 where tup = (length strings, head strings, strings !! 1))
 
 --
@@ -143,7 +145,7 @@ testDeleteNote = TestCase (do
 
 testGetTodoPriorityOne = TestCase (do
     deleteAll TestDB Todo
-    add TestDB Todo ["tag1", "p1", "First", "here"]
+    add TestDB Todo ["tag1", "p1", "First", "hi"]
     add TestDB Todo ["tag1", "p2", "Second", "here"]
     add TestDB Todo ["tag1", "Third", "here"]
     results <- get TestDB ["todo", "p1"]
@@ -153,14 +155,9 @@ testGetTodoPriorityOne = TestCase (do
         strings -> assertEqual "There should be only one todo with priority 1" 
             1 (length strings))
 
-testTodoConstructPrioritySelection = TestCase (do
-    assertEqual "The selection on priority should match this"
-        (select ([(fieldToText Priority) =: (1 :: Int32)]) (docTypeToText Todo))
-            (constructSelection Todo ["p1"]))
-
 testGetTodoByDay = TestCase (do
     deleteAll TestDB Todo
-    add TestDB Todo ["tag1", "p1", "by", "12/21", "First", "here"]
+    add TestDB Todo ["tag1", "p1", "by", "12/21", "First", "penguin"]
     add TestDB Todo ["tag1", "p2", "by", "12/22", "Second", "here"]
     add TestDB Todo ["tag2", "p2", "Third", "here"]
     results <- get TestDB ["todo", "by", "12/21"]
@@ -173,7 +170,7 @@ testGetTodoByDay = TestCase (do
 -- TODO test this
 testGetTodoByTomorrow = TestCase (do
     deleteAll TestDB Todo
-    add TestDB Todo ["tag1", "p1", "by", "tomorrow", "First", "here"]
+    add TestDB Todo ["tag1", "p1", "by", "tomorrow", "First", "here", "heart"]
     add TestDB Todo ["tag2", "p2", "Third", "here"]
     results <- get TestDB ["todo", "tomorrow"]
     case results of 
@@ -186,26 +183,9 @@ testGetTodoByTomorrow = TestCase (do
 -- Tags
 --
 
-testTagsSelector = TestCase (do
-    assertEqual "The tags selector for two tags should match..."
-        [(fieldToText Tags) =: [pack "$all" =: [pack "city", pack "urban"]]]
-            (tagsSelector [] ["city", "urban"]))
-
-testTodoConstructOneTagSelection = TestCase (do
-    assertEqual "The selection on tags should match this" 
-        (select ([(fieldToText Tags) =: [pack "$all" =: ["school"]]]) 
-            (docTypeToText Todo))
-                (constructSelection Todo ["school"]))
-
-testTodoConstructTwoTagsSelection = TestCase (do
-    assertEqual "The selection on tags should match this" 
-        (select ([(fieldToText Tags) =: [pack "$all" =: ["school", "228"]]]) 
-            (docTypeToText Todo))
-                (constructSelection Todo ["school", "228"]))
-
 testGetTodoTags = TestCase (do
     deleteAll TestDB Todo
-    add TestDB Todo ["p1", "First", "here"]
+    add TestDB Todo ["p1", "First", "here", "crazy"]
     add TestDB Todo ["p2", "Second", "here"]
     add TestDB Todo ["water", "Third", "here"]
     results <- get TestDB ["todo", "water"]
@@ -218,7 +198,7 @@ testGetTodoTags = TestCase (do
 
 testGetNoteTags = TestCase (do
     deleteAll TestDB Note
-    add TestDB Note ["p1", "First", "here"]
+    add TestDB Note ["p1", "First", "canoe"]
     add TestDB Note ["p2", "Second", "here"]
     add TestDB Note ["water", "Third", "here"]
     results <- get TestDB ["note", "water"]
@@ -231,7 +211,7 @@ testGetNoteTags = TestCase (do
 
 testGetTwoTodoTags = TestCase (do
     deleteAll TestDB Todo
-    add TestDB Todo ["p1", "school", "First", "here"]
+    add TestDB Todo ["p1", "school", "First", "seven-hundred"]
     add TestDB Todo ["229", "Second", "here"]
     add TestDB Todo ["water", "229", "Third", "here"]
     results <- get TestDB ["todo", "water", "229"]
@@ -251,7 +231,7 @@ testGetFieldsForTodo = TestCase (do
 
 testGetTodoFromPriorityAndTag = TestCase (do
     deleteAll TestDB Todo
-    add TestDB Todo ["p1", "school", "First", "here"]
+    add TestDB Todo ["p1", "school", "First", "snoopy"]
     add TestDB Todo ["school", "Second", "here"]
     add TestDB Todo ["p1", "Third", "here"]
     results <- get TestDB ["todo", "school", "p1"]
@@ -260,12 +240,12 @@ testGetTodoFromPriorityAndTag = TestCase (do
             "Didn't get results after adding todo tagged 'school' and 'p1'"
         strings -> assertEqual
             "There should be only one todo tagged 'school' and 'p1'" 
-                (1, "1 - First here") tup
+                (1, "1 - First snoopy") tup
                     where tup = (length strings, head strings))
 
 testGetNoteByTag = TestCase (do
     deleteAll TestDB Note
-    add TestDB Note ["music", "First", "here"]
+    add TestDB Note ["music", "First", "here", "zoom"]
     add TestDB Note ["water", "Second", "here"]
     results <- get TestDB ["note", "water"]
     case results of
@@ -278,7 +258,7 @@ testGetNoteByTag = TestCase (do
 
 testTagIsNewTrue = TestCase (do
     deleteAll TestDB Tag
-    add TestDB Note ["music", "First", "here"]
+    add TestDB Note ["music", "First", "cow"]
     pipe <- sharedPipe
     result <- (tagIsNew pipe TestDB Note "music")
     assertEqual "Should find that the 'music' tag already exists"
@@ -286,7 +266,7 @@ testTagIsNewTrue = TestCase (do
 
 testTagIsNewFalse = TestCase (do
     deleteAll TestDB Tag
-    add TestDB Note ["fly", "First", "here"]
+    add TestDB Note ["fly", "First", "plane"]
     pipe <- sharedPipe
     result <- (tagIsNew pipe TestDB Note "music")
     assertEqual "Should find that the 'music' tag is new"
@@ -324,3 +304,18 @@ testIncrementTestCountTwice = TestCase (do
         Nothing -> assertFailure "Didn't increment the test count"
         Just i -> assertEqual "Incremented the test count twice" 2 i)
 
+testTimeRangesAreValid = TestCase (do
+  let shouldBeTrue = all isTimeRange
+        ["5 - 6", "4am - 12pm", "4:32am - 3pm", "12:01 - 12:02",
+          (unwords ["4:30pm", "-", "7pm"])]
+  assertEqual "All these times should be valid" True shouldBeTrue)
+
+testTimeRangesAreInvalid = TestCase (do
+  let shouldBeFalse = any isTimeRange 
+        ["5AM - 6", "4am - 12p", "4:61 - 3pm", "12:01", "4: - 3pm", "13 - 4",
+          "4-5"]
+  assertEqual "All these times should be invalid" False shouldBeFalse)
+
+testEventIsValid = TestCase (do
+  let shouldBeTrue = eventIsValid ["12/26", "4:30pm", "-", "7pm", "tag", "This"]
+  assertEqual "The event should be valid" True shouldBeTrue)
