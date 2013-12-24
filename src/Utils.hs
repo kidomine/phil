@@ -23,7 +23,8 @@ import Database.MongoDB
 data DocType = Todo | Tag | Cal | Note | Haha | Quote | People
              | Goal | Survey | Flashcard | Reminder | Score | TestCount
 data DocField = TextField | TypeField | Priority | Tags | Created
-                | DueBy | Question | Answer | Count
+                | DueBy | Question | Answer | Count | ItemId | QuestionId
+                | TestCountField | ScoreField
 data DatabaseName = ProdDB | TestDB
 
 sharedPipe = runIOE $ connect (host "127.0.0.1")
@@ -69,6 +70,11 @@ fieldToText field = case field of
     Question -> pack "question"
     Answer -> pack "answer"
     Count -> pack "count"
+    ScoreField -> pack "score"
+    ItemId -> pack "_id"
+    QuestionId -> pack "questionId"
+    TestCountField -> pack "testCount"
+
 
 -- | Some strings are plural so I can e.g. type 'g notes'
 -- When I expect many notes, typeing 'g note' feels wrong.

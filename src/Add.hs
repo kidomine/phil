@@ -6,10 +6,13 @@ module Add (
     , getAnswer
     , incrementTestCount
     , getTestCount
+    , addScore
+    , getQuestionScore
+    , showTestScore
 ) where
 
 import Database.MongoDB
-import Data.Text (pack, Text)
+import Data.Text (pack, Text, empty)
 import Data.Time
 import Data.Char
 import Data.Int
@@ -170,10 +173,45 @@ incrementTestCount dbName tags = do
                             Left _ -> error "Couldn't increment the test count"
                             Right _ -> return ()
 
-{-
-addScore :: DatabaseName -> [String] -> ObjectId -> IO () 
-addScore dbName tags questionId = do
+getQuestionScore :: DatabaseName -> [String] -> Int32 -> ObjectId -> IO Int32
+getQuestionScore dbName tags testCount questionId = do
     pipe <- sharedPipe
-    let doc = 
-    e <- run pipe dbName $ insert (docTypeToText Score) 
-    -}
+    let selection = select ([(fieldToText Tags) =: [pack "$all" =: tags], 
+            (fieldToText TestCountField) =: testCount, (fieldToText QuestionId)
+                =: questionId]) (docTypeToText Score)
+    mResult <- run pipe dbName $ findOne selection
+    case mResult of
+        --Left _ -> error "couldn't find the score"
+        Right mDoc -> case mDoc of
+            Nothing -> error "Couldn't find the score"
+            Just doc -> let Int32 scoreInt = valueAt (fieldToText ScoreField) doc
+                        in return scoreInt
+
+addScore :: DatabaseName -> [String] -> Int32 -> ObjectId -> Int32 -> IO ()
+addScore dbName tags testCount questionId score = do
+    pipe <- sharedPipe
+    e <- run pipe dbName $ insert (docTypeToText Score) $
+        [(fieldToText Tags) =: tags,
+            (fieldToText TestCountField) =: testCount, (fieldToText QuestionId) 
+                =: questionId, (fieldToText ScoreField) =: score]
+    case e of 
+        Left failure -> do
+                            putStrLn $ show failure
+                            return ()
+        Right score -> return ()
+
+showTestScore :: DatabaseName -> Int32 -> IO [String]
+showTestScore dbName testCount = do
+    pipe <- sharedPipe
+    let matchSelect = [(fieldToText TestCountField) =: testCount]
+    let pipeline = [ [pack "$match" =: matchSelect],
+                        [pack "$group" =: [pack "_id" =: empty, pack "sum" =: 
+                            [ pack "$sum" =: "$score"]]] ]
+    docs <- run pipe dbName $ aggregate (docTypeToText Score) pipeline
+    case docs of 
+        Left failure -> do
+                            putStrLn $ show failure
+                            return ["failed"]
+        Right ds -> do 
+                        let Int32 score = valueAt (pack "sum") (head ds)
+                        return ["score is " ++ show score]

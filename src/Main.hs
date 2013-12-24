@@ -13,6 +13,7 @@ import System.Console.Haskeline
 import System.Console.Haskeline.IO
 import Control.Concurrent
 import Control.Exception
+import Data.Int
 
 import Utils
 import Add
@@ -57,36 +58,61 @@ exec inputState (fn:args) =
                       return [result]
         "test" -> do
                     incrementTestCount ProdDB args
+                    mTestCount <- getTestCount ProdDB args
+                    let testCount = case mTestCount of
+                            Nothing -> (-1 :: Int32)
+                            Just c -> c
                     docs <- getFlashcards ProdDB args
-                    testLoop inputState docs True
+                    testLoop inputState docs args testCount True
         "g" -> get ProdDB args
         "d" -> do deleteItem ProdDB args
                   get ProdDB [(head args)]
         _ -> return ["I don't recognize that command"]
 
 -- | Recursive. For each question, print it, and get a y/n response
---
-testLoop :: InputState -> [Document] -> Bool -> IO [String]
-testLoop inputState docs isQuestion = case docs of 
-    doc:ds -> case isQuestion of
+testLoop :: InputState -> [Document] -> [String] -> Int32 -> Bool -> IO [String]
+testLoop inputState docs tags testCount isQuestion =
+    case docs of
+    doc:ds -> 
+        let ObjId questionId = valueAt (fieldToText ItemId) doc
+        in case isQuestion of
         True -> do 
                     putStrLn "Question\n-----------"
                     let String question = valueAt (fieldToText Question) doc
                     minput <- queryInput inputState (getInputLine 
                         $ (unpack question) ++ "\n\n")
-                    testLoop inputState docs False
+                    testLoop inputState docs tags testCount False
         False -> do 
                     putStrLn "Answer\n-----------"
                     let String answer = valueAt (fieldToText Answer) doc
                     minput <- queryInput inputState (getInputLine 
-                        $ (unpack answer) ++ "\n\n    y|n\n\n")
+                        $ (unpack answer) ++ "\n\n")
                     case minput of
-                        Just "y" -> do putStrLn "\n\n"
-                                       testLoop inputState ds True
-                        Just "n" -> do putStrLn "\n\n"
-                                       testLoop inputState ds True
-    [] -> return []
+                        Just "y" -> answeredQuestionCorrectly inputState ds tags
+                            testCount questionId
+                        Just "" -> answeredQuestionCorrectly inputState ds tags 
+                            testCount questionId
+                        Just "n" -> answeredQuestionIncorrectly inputState docs 
+                            tags testCount questionId
+    [] -> showTestScore ProdDB testCount
                         
+answeredQuestionCorrectly :: InputState -> [Document] -> [String] -> Int32 -> 
+    ObjectId -> IO [String]
+answeredQuestionCorrectly inputState docs tags testCount questionId = 
+    do putStrLn "\n\n"
+       addScore ProdDB tags testCount
+           questionId (1 :: Int32)
+       testLoop inputState docs tags testCount 
+           True
+
+answeredQuestionIncorrectly :: InputState -> [Document] -> [String] -> Int32 -> 
+    ObjectId -> IO [String]
+answeredQuestionIncorrectly inputState docs tags testCount questionId =
+    do putStrLn "\n\n"
+       addScore ProdDB tags testCount 
+           questionId (0 :: Int32)
+       testLoop inputState docs tags testCount 
+           True
 
 -- | Prints help message
 help :: [String]
