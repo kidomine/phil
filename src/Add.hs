@@ -208,19 +208,25 @@ addScore dbName tags testCount questionId score = do
     pipe <- sharedPipe
     e <- run pipe dbName $ insert (docTypeToText Score) $
         [(fieldToText Tags) =: tags,
-            (fieldToText TestCountField) =: testCount, (fieldToText QuestionId) 
+            (fieldToText TestCountField) =: testCount, (fieldToText QuestionId)
                 =: questionId, (fieldToText ScoreField) =: score]
     case e of 
-        Right score -> return ()
+      Left failure -> do putStrLn $ show failure
+                         return ()
+      Right score -> return ()
 
-showTestScore :: DatabaseName -> Int32 -> IO [String]
-showTestScore dbName testCount = do
+showTestScore :: DatabaseName -> [String] -> Int32 -> IO [String]
+showTestScore dbName tags testCount = do
     pipe <- sharedPipe
-    let matchSelect = [(fieldToText TestCountField) =: testCount]
-    let pipeline = [ [pack "$match" =: matchSelect,
-                        pack "$group" =: [pack "_id" =: empty, pack "sum" =: 
-                            [ pack "$sum" =: "$count"]]] ]
+    putStrLn $ "test count is " ++ show testCount
+    let matchSelect = [(fieldToText TestCountField) =: testCount,
+                       (fieldToText Tags) =: [pack "$all" =: tags] ]
+    let pipeline = [ [pack "$match" =: matchSelect],
+                        [pack "$group" =: [pack "_id" =: empty, pack "sum" =: 
+                            [ pack "$sum" =: "$score"]]] ]
     docs <- run pipe dbName $ aggregate (docTypeToText Score) pipeline
     case docs of 
-        --Left msg -> return [msg]
-        Right mDoc -> return ["success"] 
+        Left failure -> do putStrLn $ show failure
+                           return ["failed"]
+        Right doc -> do let Int32 score = valueAt (pack "sum") (head doc)
+                        return ["score is " ++ show score] 

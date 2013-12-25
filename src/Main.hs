@@ -60,7 +60,9 @@ exec inputState (fn:args) =
                       result <- review ProdDB args
                       return [result]
         "test" -> case (head args) of
-              "goals" -> testGoals
+              "goals" -> do
+                docs <- getGoals ProdDB
+                goalLoop inputState docs
               _ -> do
                 incrementTestCount ProdDB args
                 mTestCount <- getTestCount ProdDB args
@@ -74,6 +76,23 @@ exec inputState (fn:args) =
                   get ProdDB [(head args)]
         _ | eventIsValid (fn:args) -> add ProdDB Event (fn:args)
           | otherwise -> return ["I don't recognize that command"]
+
+-- | Recursive. For each goal, print it, and get a y/n response
+goalLoop :: InputState -> [Document] -> IO [String]
+goalLoop inputState docs =
+  case docs of
+    doc:ds -> do
+      let ObjId goalId = valueAt (fieldToText ItemId) doc
+          String text = valueAt (fieldToText TextField) doc
+      minput <- queryInput inputState (getInputLine $ (unpack text) ++ "\n\n")
+      case minput of 
+        Just "y" -> do
+                      scoreGoal ProdDB goalId 1
+                      goalLoop inputState ds
+        Just "n" -> do
+                      scoreGoal ProdDB goalId 0
+                      goalLoop inputState ds
+    [] -> getGoalScores ProdDB
 
 -- | Recursive. For each question, print it, and get a y/n response
 testLoop :: InputState -> [Document] -> [String] -> Int32 -> Bool -> IO [String]
@@ -94,29 +113,25 @@ testLoop inputState docs tags testCount isQuestion =
                     minput <- queryInput inputState (getInputLine 
                         $ (unpack answer) ++ "\n\n")
                     case minput of
-                        Just "" -> answeredQuestionCorrectly inputState ds tags
+                        Just "y" -> answeredQuestionCorrectly inputState ds tags
                             testCount questionId
-                        Just "n" -> answeredQuestionIncorrectly inputState docs 
+                        Just "n" -> answeredQuestionIncorrectly inputState ds
                             tags testCount questionId
-    [] -> showTestScore ProdDB testCount
+    [] -> showTestScore ProdDB tags testCount
                         
 answeredQuestionCorrectly :: InputState -> [Document] -> [String] -> Int32 -> 
-    ObjectId -> IO [String]
+  ObjectId -> IO [String]
 answeredQuestionCorrectly inputState docs tags testCount questionId = 
-    do putStrLn "\n\n"
-       addScore ProdDB tags testCount
-           questionId (1 :: Int32)
-       testLoop inputState docs tags testCount 
-           True
+  do putStrLn "\n\n"
+     addScore ProdDB tags testCount questionId (1 :: Int32)
+     testLoop inputState docs tags testCount True
 
 answeredQuestionIncorrectly :: InputState -> [Document] -> [String] -> Int32 -> 
-    ObjectId -> IO [String]
+  ObjectId -> IO [String]
 answeredQuestionIncorrectly inputState docs tags testCount questionId =
-    do putStrLn "\n\n"
-       addScore ProdDB tags testCount 
-           questionId (0 :: Int32)
-       testLoop inputState docs tags testCount 
-           True
+  do putStrLn "\n\n"
+     addScore ProdDB tags testCount questionId (0 :: Int32)
+     testLoop inputState docs tags testCount True
 
 -- | Prints help message
 help :: [String]

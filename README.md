@@ -250,6 +250,13 @@ start survey
 ### Create
 <pre>
 goal remind daily Take vitamins
+goal Brush three times a day
+</pre>
+
+### Test
+<pre>
+test goals
+When a goal is shown, type "y" if you made it, "n" otherwise.
 </pre>
 
 ## Question

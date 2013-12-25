@@ -2,6 +2,7 @@ module Get (
       get
     , constructSelection
     , getFlashcards
+    , getGoals
 ) where
 
 import Database.MongoDB
@@ -94,6 +95,16 @@ get dbName arguments = do
                   currentTime <- getCurrentTime
                   return $ getFormattedDocs currentTime docs args []
 
+getGoals :: DatabaseName -> IO [Document]
+getGoals dbName = do
+  pipe <- liftIO sharedPipe
+  let selection = select [] (docTypeToText Goal)
+  cursor <- run pipe dbName $ find selection
+  mdocs <- run pipe dbName $ rest (case cursor of Right c -> c)
+  case mdocs of 
+    Left _ -> return []
+    Right docs -> return docs
+
 getFlashcards :: DatabaseName -> [String] -> IO [Document]
 getFlashcards dbName args = do
     pipe <- liftIO sharedPipe
@@ -147,12 +158,6 @@ constructSelection :: DocType -> [String] -> [String] -> Selector ->
   Query
 constructSelection docType args tagsSoFar selector =
   case args of
-  {-
-    "tags":tailArgs -> do
-      select [(fieldToText TypeField) =: (docTypeToText docType)] 
-        (docTypeToText Tag)
-    "with":tailArgs -> select [] (docTypeToText docType)
-    -}
     "by":tailArgs -> 
       select [(fieldToText DueBy) =: [pack "$gt" =:
         beginningOfTime, pack "$lte" =: readDate (head tailArgs)]] 

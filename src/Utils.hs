@@ -28,10 +28,10 @@ import Data.Time
 import Database.MongoDB
 
 data DocType = Todo | Tag | Event | Note | Goal | Flashcard 
-               | Reminder | Score | TestCount
+               | Reminder | Score | TestCount | GoalScore
 data DocField = TextField | TypeField | Priority | Tags | Created
                 | DueBy | Question | Answer | Count | ItemId | QuestionId
-                | TestCountField | ScoreField | StartDate | EndDate 
+                | TestCountField | ScoreField | StartDate | EndDate | GoalId
 data DatabaseName = ProdDB | TestDB
 
 sharedPipe = runIOE $ connect (host "127.0.0.1")
@@ -204,6 +204,7 @@ fieldToText field = case field of
     ScoreField -> pack "score"
     ItemId -> pack "_id"
     QuestionId -> pack "questionId"
+    GoalId -> pack "goalId"
     TestCountField -> pack "testCount"
     StartDate -> pack "startDate"
     EndDate -> pack "endDate"
@@ -235,3 +236,4 @@ docTypeToText docType = case docType of
     Goal -> pack "goal"
     Score -> pack "score"
     TestCount -> pack "testCount"
+    GoalScore -> pack "goalScore"
