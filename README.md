@@ -153,6 +153,17 @@ Hit return if you got it right, "n" if you
 got it wrong.
 </pre>
 
+## Event
+
+### Create
+<pre>
+1/1 2pm - 2:15pm home Call Marie
+</pre>
+
+### Delete
+<pre>
+d event 2
+</pre>
 
 # Other operations
 
@@ -176,7 +187,7 @@ is released.
 g types
     returns:
         todo
-        cal
+        event
         note
         goal
         fc

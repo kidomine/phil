@@ -29,6 +29,7 @@ getFieldsForType docType inputWords = do
             Note -> getFieldsForNote [] inputWords []
             Flashcard -> getFieldsForFlashcard [] inputWords []
             Event -> getFieldsForEvent inputWords
+            Goal -> getFieldsForGoal inputWords
     return results
 
 -- ! Recursive function that builds up the document by merges
@@ -80,6 +81,10 @@ getFieldsForEvent inputWords =
        (fieldToText EndDate) =: (UTCTime day endTime),
        (fieldToText Tags) =: tags,
        (fieldToText TextField) =: text]
+
+getFieldsForGoal :: [String] -> Document
+getFieldsForGoal inputWords =
+  [(fieldToText TextField) =: (unwords inputWords)]
 
 getAnswer :: String -> String
 getAnswer line = let (_, answerWithQuestionMark) = break (=='?') line

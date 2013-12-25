@@ -22,6 +22,7 @@ import Get
 import Migrate
 import Review
 import Validate
+import Goals
 
 main :: IO ()
 main = bracketOnError (initializeInput defaultSettings)
@@ -54,17 +55,20 @@ exec inputState (fn:args) =
         "todo" -> add ProdDB Todo args
         "note" -> add ProdDB Note args
         "fc" -> add ProdDB Flashcard args
+        "goal" -> add ProdDB Goal args
         "review" -> do 
                       result <- review ProdDB args
                       return [result]
-        "test" -> do
-                    incrementTestCount ProdDB args
-                    mTestCount <- getTestCount ProdDB args
-                    let testCount = case mTestCount of
-                            Nothing -> (-1 :: Int32)
-                            Just c -> c
-                    docs <- getFlashcards ProdDB args
-                    testLoop inputState docs args testCount True
+        "test" -> case (head args) of
+              "goals" -> testGoals
+              _ -> do
+                incrementTestCount ProdDB args
+                mTestCount <- getTestCount ProdDB args
+                let testCount = case mTestCount of
+                        Nothing -> (-1 :: Int32)
+                        Just c -> c
+                docs <- getFlashcards ProdDB args
+                testLoop inputState docs args testCount True
         "g" -> get ProdDB args
         "d" -> do deleteItem ProdDB args
                   get ProdDB [(head args)]

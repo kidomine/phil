@@ -3,6 +3,7 @@ module Validate (
     , noteIsValid
     , flashcardIsValid
     , eventIsValid
+    , goalIsValid
 ) where
 
 import Data.Char
@@ -15,6 +16,7 @@ docIsValid docType inputWords = case docType of
     Todo -> todoIsValid inputWords
     Flashcard -> flashcardIsValid inputWords
     Event -> eventIsValid inputWords
+    Goal -> goalIsValid inputWords
 
 noteIsValid :: [String] -> Bool
 noteIsValid inputWords = any
@@ -30,3 +32,5 @@ eventIsValid inputWords = noteIsValid inputWords &&
   case (splitDateTimeRangeTagsAndText $ unwords inputWords) of
     Nothing -> False
     Just _ -> True
+
+goalIsValid = noteIsValid
