@@ -160,17 +160,18 @@ add dbName docType inputWords = do
 
 getTestCount :: DatabaseName -> [String] -> IO (Maybe Int32)
 getTestCount dbName tags = do
-    pipe <- sharedPipe
-    mdoc <- run pipe dbName $ findOne $ select [(fieldToText Tags) =: 
-        [pack "$all" =: tags]]
-            (docTypeToText TestCount)
-    case mdoc of 
-        Left _ -> return Nothing
-        Right mDoc -> case mDoc of 
-          Nothing -> return Nothing
-          Just doc -> let Int32 count = valueAt 
-                            (fieldToText Count) doc
-                      in return $ Just count
+  pipe <- sharedPipe
+  mdoc <- run pipe dbName $ findOne $ select [(fieldToText Tags) =: 
+    [pack "$all" =: tags]]
+      (docTypeToText TestCount)
+  case mdoc of 
+    Left failure -> do putStrLn $ show failure
+                       return Nothing
+    Right mDoc -> case mDoc of 
+      Nothing -> return Nothing
+      Just doc -> let Int32 count = valueAt 
+                        (fieldToText Count) doc
+                  in return $ Just count
 
 incrementTestCount :: DatabaseName -> [String] -> IO ()
 incrementTestCount dbName tags = do

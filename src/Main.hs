@@ -26,6 +26,7 @@ import Review
 import Validate
 import Goals
 import Done
+import Edit
 
 main :: IO ()
 main = bracketOnError (initializeInput defaultSettings)
@@ -94,10 +95,9 @@ exec inputState (fn:args) =
         "goal" -> add ProdDB Goal args
         "done" -> completeTodo ProdDB (read (head args) :: Int)
         "log" -> showLog (read (head args) :: Int)
-        "review" -> do 
-                      result <- review ProdDB args
-                      return [result]
-        "edit" edit ProdDB args
+        "review" -> do result <- review ProdDB args
+                       return [result]
+        "edit" -> edit ProdDB args
         "vi" -> runVim
         "test" -> case (head args) of
               "goals" -> do
