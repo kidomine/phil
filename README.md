@@ -5,6 +5,9 @@
 
 ### Set up
 <pre>
+I use this bash alias:
+alias cab='cabal configure --enable-tests; cabal build; cabal test'
+
 mongod --dbpath mongoFiles --setParameter textSearchEnabled=true
 Make sure the mongoFiles folder is backed up
 A log of all text input to the program is
