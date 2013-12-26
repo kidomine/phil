@@ -89,8 +89,8 @@ get dbName arguments = do
          let docType = getDocType docTypeArg
          mDocs <- getDocs dbName docType args
          case mDocs of
-             Left _ -> return []
-             Right docs -> do
+             [] -> return []
+             docs -> do
                   --putStrLn $ "docs are " ++ (show docs)
                   currentTime <- getCurrentTime
                   return $ getFormattedDocs currentTime docs args []
@@ -116,7 +116,7 @@ getFlashcards dbName args = do
         Left _ -> return []
         Right docs -> return docs
 
-getDocs :: DatabaseName -> DocType -> [String] -> IO (Either Failure [Document])
+getDocs :: DatabaseName -> DocType -> [String] -> IO [Document]
 getDocs dbName docType args = do
   pipe <- sharedPipe
   case args of
@@ -124,32 +124,36 @@ getDocs dbName docType args = do
        let selection = select [(fieldToText TypeField) =: 
              (docTypeToText docType)] (docTypeToText Tag)
        cursor <- run pipe dbName $ find selection
-       run pipe dbName $ rest (case cursor of Right c -> c)
-       {-
-    "with":"tags":tailArgs -> do
-       let selection = select [] (docTypeToText Tag)
-       cursor <- run pipe dbName $ find selection
-       results <- run pipe dbName $ rest (case cursor of Right c -> c)
-       putStrLn $ "results for the with query are " ++ (show results)
-       return results
-       -}
-    _ -> let (arguments, keywords) = break (isUpper . head) args
-             selection = constructSelection docType arguments [] []
-         in case keywords of 
-              [] -> do
-                --putStrLn $ "selection is " ++ (show selection)
-                cursor <- run pipe dbName $ find selection
-                run pipe dbName $ rest (case cursor of Right c -> c)
-              ks -> do 
-                undefined
-              {-
-                mDoc <- run pipe dbName $ runCommand [pack "text" =:
-                  [pack "search" =: (pack $ unwords ks)], 
-                    [pack "filter" =: (selector selection)]]
-                case mDoc of
-                  Left _ -> error
-                  Right doc -> return $ Right $ valueAt (pack "results") doc
-                  -}
+       mDocs <- run pipe dbName $ rest (case cursor of Right c -> c)
+       case mDocs of 
+         Left failure -> do putStrLn $ show failure
+                            return []
+         Right docs -> return docs
+    _ -> let (arguments, ks) = break (isUpper . head) args
+             query = constructSelection docType arguments [] []
+         in case ks of 
+            [] -> do
+              cursor <- run pipe dbName $ find query
+              mDocs <- run pipe dbName $ rest (case cursor of Right c -> c)
+              case mDocs of
+                Left failure -> do putStrLn $ show failure
+                                   return []
+                Right docs -> return docs
+            keywords -> do 
+              let order = [(fieldToText TextField) =: (1 :: Int32)]
+              let i = index (docTypeToText docType) order
+              putStrLn $ "index is " ++ show i
+              run pipe dbName $ ensureIndex i
+              mDoc <- run pipe dbName $ runCommand 
+                [pack "text" =: (docTypeToText docType),
+                  pack "search" =: (pack $ unwords keywords), 
+                    pack "filter" =: (selector $ selection query)]
+              case mDoc of
+                Left failure -> do putStrLn $ show failure
+                                   return []
+                Right doc -> let Array results = valueAt (pack "results") doc
+                                 ds = [d | Doc d <- results]
+                             in return ds
                             
 -- | Recursive function that builds up the selector based on args
 -- When there are no args left to examine, we check if we've
@@ -175,5 +179,6 @@ constructSelection docType args tagsSoFar selector =
             selector
     [] -> case tagsSoFar of 
         [] -> select selector (docTypeToText docType)
-        _ -> let tagsSelector = [(fieldToText Tags) =: [pack "$all" =: tagsSoFar]]
+        _ -> let tagsSelector = [(fieldToText Tags) =: 
+                   [pack "$all" =: tagsSoFar]]
              in select (merge selector tagsSelector) (docTypeToText docType)

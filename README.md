@@ -5,7 +5,7 @@
 
 ### Set up
 <pre>
-mongod --dbpath mongoFiles
+mongod --dbpath mongoFiles --setParameter textSearchEnabled=true
 Make sure the mongoFiles folder is backed up
 </pre>
 
