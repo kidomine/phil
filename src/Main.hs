@@ -97,6 +97,7 @@ exec inputState (fn:args) =
         "review" -> do 
                       result <- review ProdDB args
                       return [result]
+        "edit" edit ProdDB args
         "vi" -> runVim
         "test" -> case (head args) of
               "goals" -> do
