@@ -22,11 +22,8 @@ deleteItem dbName args = do
 
 del :: Pipe -> DocType -> Int -> [Document] -> Action IO ()
 del pipe docType n docs = do
-    let collection = docTypeToText docType
-    let ObjId itemId = valueAt (pack "_id") (docs !! (n-1))
-    deleteOne (select [(pack "_id") =: itemId] collection)
-    --get ProdDB [(unpack $ docTypeToText docType)]
-    --return ()
+  let ObjId itemId = valueAt (fieldToText ItemId) (docs !! (n-1))
+  deleteOne $ select [(fieldToText ItemId) =: itemId] (docTypeToText docType)
 
 -- | Delete all documents of a certain type from db
 deleteAll :: DatabaseName -> DocType -> IO [String]

@@ -23,6 +23,7 @@ import Migrate
 import Review
 import Validate
 import Goals
+import Done
 
 main :: IO ()
 main = bracketOnError (initializeInput defaultSettings)
@@ -64,6 +65,7 @@ exec inputState (fn:args) =
         "note" -> add ProdDB Note args
         "fc" -> add ProdDB Flashcard args
         "goal" -> add ProdDB Goal args
+        "done" -> completeTodo ProdDB (read (head args) :: Int)
         "review" -> do 
                       result <- review ProdDB args
                       return [result]

@@ -15,9 +15,6 @@ module Utils (
     , isTimeRange
     , isSlashDate
     , splitDateTimeRangeTagsAndText
-    -- temporary
-    , splitDateAndRest
-    , getTimeRange
 ) where
 
 import Data.Char
@@ -32,6 +29,7 @@ data DocType = Todo | Tag | Event | Note | Goal | Flashcard
 data DocField = TextField | TypeField | Priority | Tags | Created
                 | DueBy | Question | Answer | Count | ItemId | QuestionId
                 | TestCountField | ScoreField | StartDate | EndDate | GoalId
+                | Done
 data DatabaseName = ProdDB | TestDB
 
 sharedPipe = runIOE $ connect (host "127.0.0.1")
@@ -208,6 +206,7 @@ fieldToText field = case field of
     TestCountField -> pack "testCount"
     StartDate -> pack "startDate"
     EndDate -> pack "endDate"
+    Done -> pack "done"
 
 -- | Some strings are plural so I can e.g. type 'g notes'
 -- When I expect many notes, typeing 'g note' feels wrong.

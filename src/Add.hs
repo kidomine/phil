@@ -115,16 +115,17 @@ getFieldsForFlashcard doc inputWords tagsSoFar =
 
 tagIsNew :: Pipe -> DatabaseName -> DocType -> String -> IO Bool
 tagIsNew pipe dbName docType t =
-    if (wordIsReserved t) then return False
-    else do
-        cursor <- run pipe dbName $ 
-            find $ select [(fieldToText TypeField) =: (docTypeToText docType),
-                  (fieldToText TextField) =: (pack t)] (docTypeToText Tag)
-        docs <- run pipe dbName $ rest (case cursor of Right c -> c)
-        case docs of 
-            Left _ -> return True -- todo raise an error instead
-            Right documents | (length documents) == 0 -> return True
-                            | otherwise -> return False
+  if (wordIsReserved t) then return False
+  else do
+    cursor <- run pipe dbName $ 
+      find $ select [(fieldToText TypeField) =: (docTypeToText docType),
+            (fieldToText TextField) =: (pack t)] (docTypeToText Tag)
+    docs <- run pipe dbName $ rest (case cursor of Right c -> c)
+    case docs of 
+      Left failure -> do putStrLn $ show failure
+                         return True
+      Right documents | (length documents) == 0 -> return True
+                      | otherwise -> return False
 
 addNewTag :: Pipe -> DatabaseName -> DocType -> String -> IO ()
 addNewTag pipe dbName docType t = do
@@ -142,19 +143,20 @@ addNewTag pipe dbName docType t = do
 
 add :: DatabaseName -> DocType -> [String] -> IO [String]
 add dbName docType inputWords = do
-    pipe <- sharedPipe
-    if docIsValid docType inputWords
-        then do
-            mapM (addNewTag pipe dbName docType) 
-                (takeWhile (\wrd -> not $ isUpper (head wrd)) inputWords)
-            doc <- getFieldsForType docType inputWords 
-            --putStrLn $ "Inserting doc " ++ (show doc)
-            e <- run pipe dbName $ insert (docTypeToText docType) doc
-            case e of
-                Left _ -> return ["Couldn't insert the item."] -- TODO this should be an error
-                _ -> return []
-            return []
-        else do return []
+  pipe <- sharedPipe
+  if docIsValid docType inputWords
+    then do
+      mapM (addNewTag pipe dbName docType) 
+        (takeWhile (not . isUpper . head) inputWords) -- TODO test this
+      doc <- getFieldsForType docType inputWords 
+      e <- run pipe dbName $ insert (docTypeToText docType) doc
+      case e of
+        Left failure -> do
+          putStrLn $ show failure
+          return []
+        _ -> return []
+      return []
+    else do return []
 
 getTestCount :: DatabaseName -> [String] -> IO (Maybe Int32)
 getTestCount dbName tags = do
@@ -165,10 +167,10 @@ getTestCount dbName tags = do
     case mdoc of 
         Left _ -> return Nothing
         Right mDoc -> case mDoc of 
-                        Nothing -> return Nothing
-                        Just doc -> let Int32 count = valueAt 
-                                                (fieldToText Count) doc
-                                    in return $ Just count
+          Nothing -> return Nothing
+          Just doc -> let Int32 count = valueAt 
+                            (fieldToText Count) doc
+                      in return $ Just count
 
 incrementTestCount :: DatabaseName -> [String] -> IO ()
 incrementTestCount dbName tags = do
@@ -191,17 +193,18 @@ incrementTestCount dbName tags = do
 
 getQuestionScore :: DatabaseName -> [String] -> Int32 -> ObjectId -> IO Int32
 getQuestionScore dbName tags testCount questionId = do
-    pipe <- sharedPipe
-    let selection = select ([(fieldToText Tags) =: [pack "$all" =: tags], 
-            (fieldToText TestCountField) =: testCount, (fieldToText QuestionId)
-                =: questionId]) (docTypeToText Score)
-    mResult <- run pipe dbName $ findOne selection
-    case mResult of
-        --Left _ -> error "couldn't find the score"
-        Right mDoc -> case mDoc of
-            Nothing -> error "Couldn't find the score"
-            Just doc -> let Int32 scoreInt = valueAt (fieldToText ScoreField) doc
-                        in return scoreInt
+  pipe <- sharedPipe
+  let selection = select ([(fieldToText Tags) =: [pack "$all" =: tags], 
+        (fieldToText TestCountField) =: testCount, (fieldToText QuestionId)
+            =: questionId]) (docTypeToText Score)
+  mResult <- run pipe dbName $ findOne selection
+  case mResult of
+    Left failure -> do putStrLn $ "Couldn't find the score.\n" ++ (show failure)
+                       return 0
+    Right mDoc -> case mDoc of
+      Nothing -> error "Couldn't find the score"
+      Just doc -> let Int32 scoreInt = valueAt (fieldToText ScoreField) doc
+                  in return scoreInt
 
 addScore :: DatabaseName -> [String] -> Int32 -> ObjectId -> Int32 -> IO ()
 addScore dbName tags testCount questionId score = do

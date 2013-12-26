@@ -19,39 +19,40 @@ import Add
 import Delete
 import Get
 import Review
+import Done
 import Main hiding (main)
 
 todoCases = TestLabel "Todo test cases" ( TestList [
-       testDeleteTodo, 
-       testGetTodoPriorityOne,
-       testGetTodoByDay,
-       testGetTodoTags, 
-       testGetTwoTodoTags,
-       testGetFieldsForTodo,
-       testGetTodoFromPriorityAndTag,
-       testDisplayTodoTags,
-       testTagIsNewTrue, testTagIsNewFalse,
-       testDisplayTodoWithTags
-    ] )
+     testDeleteTodo, 
+     testGetTodoPriorityOne,
+     testGetTodoByDay,
+     testGetTodoTags, 
+     testGetTwoTodoTags,
+     testGetFieldsForTodo,
+     testGetTodoFromPriorityAndTag,
+     testDisplayTodoTags,
+     testTagIsNewTrue, testTagIsNewFalse,
+     testDisplayTodoWithTags,
+     testCompleteTodo
+  ] )
 
 noteCases = TestLabel "Note test cases" ( TestList [
-       testNoteIsValid1, testNoteIsValid2, testGetNoteByTag, testDeleteNote,
-       testNoteCreatedTime, testGetNoteTags
-    ] )
+     testNoteIsValid1, testNoteIsValid2, testGetNoteByTag, testDeleteNote,
+     testNoteCreatedTime, testGetNoteTags
+  ] )
 
 flashcardCases = TestLabel "Flashcard test cases" ( TestList [
-        testFlashcardIsValid1, testFlashcardIsValid2, testReview
-    ] )
+      testFlashcardIsValid1, testFlashcardIsValid2, testReview
+  ] )
 
 scoreCases = TestLabel "Score test cases" (TestList [
-        testIncrementTestCountOnce, testIncrementTestCountTwice
-    ] )
+      testIncrementTestCountOnce, testIncrementTestCountTwice
+  ] )
 
 eventCases = TestLabel "Event test cases" (TestList [
     testTimeRangesAreValid, testTimeRangesAreInvalid, testEventIsValid
   ] )
   
-
 main = runTestTT $ TestList [todoCases, noteCases, flashcardCases, scoreCases,
                              eventCases]
 
@@ -271,6 +272,28 @@ testTagIsNewFalse = TestCase (do
     result <- (tagIsNew pipe TestDB Note "music")
     assertEqual "Should find that the 'music' tag is new"
         True result)
+
+testCompleteTodo = TestCase (do
+  deleteAll TestDB Todo
+  add TestDB Todo ["beach", "Bring sunscreen"] 
+  add TestDB Todo ["beach", "Bring sunglasses"] 
+  add TestDB Todo ["beach", "Bring towel"] 
+  pipe <- sharedPipe
+  completeTodo TestDB 2
+  results <- get TestDB ["todo"]
+  case results of 
+    [] -> assertFailure
+      "Didn't get results after adding todos and completing one"
+    strings -> assertEqual 
+      "There should be only two todos not completed"
+          2 (length strings)
+  results2 <- get TestDB ["todo", "done"]
+  case results2 of 
+    [] -> assertFailure
+      "Didn't get results after adding todos and completing one"
+    strings -> assertEqual 
+      "There should be only one todo completed"
+          1 (length strings))
 
 --
 -- Flashcards

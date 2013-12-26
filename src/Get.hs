@@ -84,24 +84,23 @@ getFormattedDocs currentTime docs args resultsSoFar = case docs of
 
 get :: DatabaseName -> [String] -> IO [String]
 get dbName arguments = do
-    case arguments of
-      docTypeArg:args -> do
-         let docType = getDocType docTypeArg
-         mDocs <- getDocs dbName docType args
-         case mDocs of
-             [] -> return []
-             docs -> do
-                  --putStrLn $ "docs are " ++ (show docs)
-                  currentTime <- getCurrentTime
-                  return $ getFormattedDocs currentTime docs args []
+  case arguments of
+    docTypeArg:args -> do
+      let docType = getDocType docTypeArg
+      mDocs <- getDocs dbName docType args
+      case mDocs of
+        [] -> return []
+        docs -> do
+          currentTime <- getCurrentTime
+          return $ getFormattedDocs currentTime docs args []
 
 getGoals :: DatabaseName -> IO [Document]
 getGoals dbName = do
   pipe <- liftIO sharedPipe
   let selection = select [] (docTypeToText Goal)
   cursor <- run pipe dbName $ find selection
-  mdocs <- run pipe dbName $ rest (case cursor of Right c -> c)
-  case mdocs of 
+  mDocs <- run pipe dbName $ rest (case cursor of Right c -> c)
+  case mDocs of 
     Left _ -> return []
     Right docs -> return docs
 
@@ -130,7 +129,8 @@ getDocs dbName docType args = do
                             return []
          Right docs -> return docs
     _ -> let (arguments, ks) = break (isUpper . head) args
-             query = constructSelection docType arguments [] []
+             query = constructSelection docType arguments [] 
+               [(fieldToText Done) =: [pack "$exists" =: False]]
          in case ks of 
             [] -> do
               cursor <- run pipe dbName $ find query
@@ -166,6 +166,10 @@ constructSelection docType args tagsSoFar selector =
       select [(fieldToText DueBy) =: [pack "$gt" =:
         beginningOfTime, pack "$lte" =: readDate (head tailArgs)]] 
           (docTypeToText docType)
+    "done":tailArgs -> -- does not merge with the current selector. 
+                       -- must replace the selection for Done does not exist
+      constructSelection docType tailArgs tagsSoFar 
+        [(fieldToText Done) =: [pack "$exists" =: True]]
     firstArg:tailArgs 
       | isPriority firstArg ->
           case firstArg of

@@ -9,18 +9,20 @@ import Control.Monad.Trans
 
 import Utils
 
-addDateCreatedToAllCollections :: IO Pipe -> DatabaseName -> IO [Either Failure ()]
+addDateCreatedToAllCollections :: IO Pipe -> DatabaseName -> 
+  IO [Either Failure ()]
 addDateCreatedToAllCollections sharedPipe dbName = do
-    pipe <- liftIO $ sharedPipe
-    cols <- liftIO $ run pipe dbName allCollections
-    let collections = case cols of
-                            Left x -> []
-                            Right c -> c
-    mapM (addDateCreatedToAllItems pipe dbName) collections
+  pipe <- liftIO $ sharedPipe
+  cols <- liftIO $ run pipe dbName allCollections
+  let collections = case cols of
+                          Left x -> []
+                          Right c -> c
+  mapM (addDateCreatedToAllItems pipe dbName) collections
 
-addDateCreatedToAllItems :: Pipe -> DatabaseName -> Collection -> IO (Either Failure ())
+addDateCreatedToAllItems :: Pipe -> DatabaseName -> Collection -> 
+  IO (Either Failure ())
 addDateCreatedToAllItems pipe dbName collection = do 
-    let beginning = read "2013-12-21 00:00:00" :: UTCTime
-        selection = [pack "created" =: [pack "$exists" =: False]]
-        modifier = [pack "$set" =: [pack "created" =: beginning]]
-    run pipe dbName $ modify (select selection collection) modifier
+  let beginning = read "2013-12-21 00:00:00" :: UTCTime
+      selection = [pack "created" =: [pack "$exists" =: False]]
+      modifier = [pack "$set" =: [(fieldToText Created) =: beginning]]
+  run pipe dbName $ modify (select selection collection) modifier
