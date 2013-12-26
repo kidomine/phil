@@ -5,7 +5,7 @@ module Main (
 import System.Environment
 import System.Directory
 import System.IO
-import Data.List
+import Data.List (init, foldl', concat)
 import Data.Text (pack, unpack)
 import Database.MongoDB 
 import System.Exit (exitSuccess)
@@ -14,6 +14,8 @@ import System.Console.Haskeline.IO
 import Control.Concurrent
 import Control.Exception
 import Data.Int
+
+import System.Process
 
 import Utils
 import Add
@@ -59,6 +61,22 @@ appendInputToLog input =
 lastN :: Int -> [a] -> [a]
 lastN n xs = foldl' (const . drop 1) xs (drop n xs)
 
+runVim :: IO [String]
+runVim = do
+  exitSuccess <- system $ "vi /Users/rose/phil/temp"
+  contents <- readFile "/Users/rose/phil/temp"
+  add ProdDB Note $ wordsWithNewlines contents
+  exitSuccess <- system $ "rm /Users/rose/phil/temp"
+  return []
+
+wordsWithNewlines :: String -> [String]
+wordsWithNewlines input = 
+  concat (map (\line -> case words line of 
+                          [] -> ["\n"]
+                          ws -> (init (words line)) 
+                                 ++ [(last $ words line) ++ "\n"]) 
+    (lines input))
+  
 -- | Shows the n lines most recently appended to the log
 showLog :: Int -> IO [String]
 showLog n = do
@@ -79,6 +97,7 @@ exec inputState (fn:args) =
         "review" -> do 
                       result <- review ProdDB args
                       return [result]
+        "vi" -> runVim
         "test" -> case (head args) of
               "goals" -> do
                 docs <- getGoals ProdDB
