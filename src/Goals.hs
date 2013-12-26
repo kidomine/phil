@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Goals (
     testGoals
   , scoreGoal
@@ -8,7 +10,7 @@ import Database.MongoDB
 import Utils
 import Data.Time
 import Data.Int
-import Data.Text (pack, unpack)
+import Data.Text (unpack)
 
 testGoals = undefined
 
@@ -27,7 +29,7 @@ scoreGoal dbName goalId score = do
 formatGoalScore :: DatabaseName -> Document -> IO String
 formatGoalScore dbName scoreDoc = do
   let ObjId goalId = valueAt (fieldToText ItemId) scoreDoc
-      selection = select [pack "_id" =: goalId] (docTypeToText Goal)
+      selection = select ["_id" =: goalId] (docTypeToText Goal)
   pipe <- sharedPipe
   mDoc <- run pipe dbName $ findOne selection
   case mDoc of 
@@ -50,9 +52,9 @@ formatGoalScores dbName docs = mapM (formatGoalScore dbName) docs
 getGoalScores :: DatabaseName -> IO [String]
 getGoalScores dbName = do
   pipe <- sharedPipe
-  let pipeline = [ [pack "$group" =: 
-                      [pack "_id" =: "$goalId",
-                       pack "score" =: [pack "$sum" =: (1 :: Int32)]
+  let pipeline = [ ["$group" =: 
+                      ["_id" =: ("$goalId" :: String),
+                       "score" =: ["$sum" =: (1 :: Int32)]
                       ]
                     ] 
                   ]

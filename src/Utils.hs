@@ -1,26 +1,27 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Utils (
-      isInteger
-    , databaseNameToString
-    , fieldToText
-    , getDocType
-    , docTypeToText
-    , DatabaseName (..)
-    , DocType (..)
-    , DocField (..)
-    , sharedPipe
-    , run
-    , wordIsReserved
-    , beginningOfTime
-    , readDate
-    , isTimeRange
-    , isSlashDate
-    , splitDateTimeRangeTagsAndText
+    isInteger
+  , databaseNameToString
+  , fieldToText
+  , getDocType
+  , docTypeToText
+  , DatabaseName (..)
+  , DocType (..)
+  , DocField (..)
+  , sharedPipe
+  , run
+  , wordIsReserved
+  , beginningOfTime
+  , readDate
+  , isTimeRange
+  , isSlashDate
+  , splitDateTimeRangeTagsAndText
 ) where
 
 import Data.Char
 import Data.Text (pack, Text)
-import Data.List (isInfixOf, isPrefixOf, isSuffixOf, inits, tails,
-                  stripPrefix)
+import Data.List (isInfixOf, isPrefixOf, isSuffixOf, inits, tails, stripPrefix)
 import Data.Time
 import Database.MongoDB
 
@@ -60,7 +61,8 @@ getHoursAndSeconds string =
       time = timeSansAmOrPm string
   in case splitAboutSubstring time ":" of
        Nothing -> ((read time :: Int) + plus12, 0)
-       Just (hour, minute) -> ((read hour :: Int) + plus12, (read minute :: Int))
+       Just (hour, minute) -> ((read hour :: Int) + plus12, 
+         (read minute :: Int))
 
 getTimeRange :: String -> (DiffTime, DiffTime)
 getTimeRange string =
@@ -82,10 +84,9 @@ isHourInt hour = hour > 0 && hour <= 12
 
 timeSansAmOrPm :: String -> String
 timeSansAmOrPm time 
-    | ((drop ((length time) - 2) time) == "am" 
-        || (drop ((length time) - 2) time) == "pm") =
-          take ((length time) - 2) time
-    | otherwise = time
+  | ((drop ((length time) - 2) time) == "am" || (drop ((length time) - 2) time)
+      == "pm") = take ((length time) - 2) time
+  | otherwise = time
 
 isDigitTime :: (Int -> Bool) -> String -> Bool
 isDigitTime func time
@@ -101,32 +102,22 @@ splitDateAndRest string =
       in Just $ (slashDateToDay dateString, drop 
                 ((length dateString) + 1) string) -- also drops leading space
   else Nothing
-        
 
 -- | Takes in a string like "12/26 4:30pm - 7pm tag1 This"
 -- and returns the day, startTime, startTime and "tag1 This"
 splitDateTimeRangeTagsAndText :: String -> 
   Maybe (Day, DiffTime, DiffTime, [String], String)
 splitDateTimeRangeTagsAndText string =
-    case splitDateAndRest string of 
-      Nothing -> Nothing
-      Just (date, restOfString) -> 
-        if any isTimeRange (inits restOfString) then
-            let time = last $ filter isTimeRange (inits restOfString)
-                (startTime, endTime) = getTimeRange time
-                remainingString = drop ((length time) + 1) restOfString
-                (tagsString, text) = break isUpper remainingString
-            in Just (date, startTime, endTime, words tagsString, text)
-         else Nothing
-
-{-
-allPrefixes :: String -> String -> [String]
-allPrefixes prefix remaining =
-  case remaining of 
-    "" -> [prefix]
-    firstChar:rest -> (allPrefixes prefix rest) ++ 
-      (allPrefixes (prefix ++ [firstChar]) rest)
-      -}
+  case splitDateAndRest string of 
+    Nothing -> Nothing
+    Just (date, restOfString) -> 
+      if any isTimeRange (inits restOfString) then
+          let time = last $ filter isTimeRange (inits restOfString)
+              (startTime, endTime) = getTimeRange time
+              remainingString = drop ((length time) + 1) restOfString
+              (tagsString, text) = break isUpper remainingString
+          in Just (date, startTime, endTime, words tagsString, text)
+       else Nothing
 
 isTime12 :: String -> Bool
 isTime12 time = case splitAboutSubstring time ":" of
@@ -168,71 +159,73 @@ isTimeRange timeRange =
 
 isInteger :: String -> Bool
 isInteger st
-    | length st == 0 = False
-    | length st == 1 = isNumber $ head st
-    | otherwise = case st of
-        firstChar:tailChars ->
-            if (isNumber firstChar) == True
-            then (isInteger tailChars) else False
+  | length st == 0 = False
+  | length st == 1 = isNumber $ head st
+  | otherwise = case st of
+      firstChar:tailChars ->
+          if (isNumber firstChar) == True
+          then (isInteger tailChars) else False
 
 readDate :: String -> UTCTime
-readDate string = let (month, day) = break (=='/') string
-                      monthNumber = read month :: Int
-                      dayNumber = read (tail day) :: Int
-                  in UTCTime (fromGregorian 2014 monthNumber dayNumber)
-                      (timeOfDayToTime $ TimeOfDay 0 0 0)
+readDate string = 
+  let (month, day) = break (=='/') string
+      monthNumber = read month :: Int
+      dayNumber = read (tail day) :: Int
+  in UTCTime (fromGregorian 2014 monthNumber dayNumber)
+      (timeOfDayToTime $ TimeOfDay 0 0 0)
 
 databaseNameToString :: DatabaseName -> String
 databaseNameToString dbName = case dbName of
-    ProdDB -> "db"
-    TestDB -> "testDB"
+  ProdDB -> "db"
+  TestDB -> "testDB"
 
 fieldToText :: DocField -> Text
 fieldToText field = case field of
-    Tags -> pack "tags"
-    TextField -> pack "text"
-    TypeField -> pack "type"
-    Priority -> pack "priority"
-    Created -> pack "created"
-    DueBy -> pack "dueBy"
-    Question -> pack "question"
-    Answer -> pack "answer"
-    Count -> pack "count"
-    ScoreField -> pack "score"
-    ItemId -> pack "_id"
-    QuestionId -> pack "questionId"
-    GoalId -> pack "goalId"
-    TestCountField -> pack "testCount"
-    StartDate -> pack "startDate"
-    EndDate -> pack "endDate"
-    Done -> pack "done"
-    Updated -> pack "updated"
+  Tags -> pack "tags"
+  TextField -> pack "text"
+  TypeField -> pack "type"
+  Priority -> pack "priority"
+  Created -> pack "created"
+  DueBy -> pack "dueBy"
+  Question -> pack "question"
+  Answer -> pack "answer"
+  Count -> pack "count"
+  ScoreField -> pack "score"
+  ItemId -> pack "_id"
+  QuestionId -> pack "questionId"
+  GoalId -> pack "goalId"
+  TestCountField -> pack "testCount"
+  StartDate -> pack "startDate"
+  EndDate -> pack "endDate"
+  Done -> pack "done"
+  Updated -> pack "updated"
 
 -- | Some strings are plural so I can e.g. type 'g notes'
 -- When I expect many notes, typeing 'g note' feels wrong.
 -- Haha check out the yin and yang below
 getDocType :: String -> DocType
 getDocType docType = case docType of
-    "todo" -> Todo
-    "todos" -> Todo
-    "tag" -> Tag
-    "tags" -> Tag
-    "rem" -> Reminder
-    "note" -> Note
-    "notes" -> Note
-    "goals" -> Goal
-    "fc" -> Flashcard
-    "event" -> Event
+  "todo" -> Todo
+  "todos" -> Todo
+  "tag" -> Tag
+  "tags" -> Tag
+  "rem" -> Reminder
+  "note" -> Note
+  "notes" -> Note
+  "goals" -> Goal
+  "goal" -> Goal
+  "fc" -> Flashcard
+  "event" -> Event
 
 docTypeToText :: DocType -> Text
 docTypeToText docType = case docType of
-    Todo -> pack "todo"
-    Tag -> pack "tag"
-    Note -> pack "note"
-    Event -> pack "event"
-    Flashcard -> pack "fc"
-    Reminder -> pack "rem"
-    Goal -> pack "goal"
-    Score -> pack "score"
-    TestCount -> pack "testCount"
-    GoalScore -> pack "goalScore"
+  Todo -> pack "todo"
+  Tag -> pack "tag"
+  Note -> pack "note"
+  Event -> pack "event"
+  Flashcard -> pack "fc"
+  Reminder -> pack "rem"
+  Goal -> pack "goal"
+  Score -> pack "score"
+  TestCount -> pack "testCount"
+  GoalScore -> pack "goalScore"

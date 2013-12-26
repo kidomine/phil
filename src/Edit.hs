@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Edit (
     edit
 ) where
@@ -5,9 +7,8 @@ module Edit (
 import System.IO
 import System.Process
 import Database.MongoDB
-import Data.Text (unpack, pack)
 import Data.Time.Clock (getCurrentTime)
-
+import Data.Text (unpack)
 import Utils
 
 edit :: DatabaseName -> [String] -> IO [String]
@@ -35,15 +36,14 @@ edit dbName args = do
                 filename = "/Users/rose/phil/tempedit"
                 selection = select [(fieldToText ItemId) =: itemId]
                   (docTypeToText docType)
-            writeFile filename (unpack text) 
+            writeFile filename (unpack text)
             exitSuccess <- system $ "vi " ++ filename
             modifiedText <- readFile filename
             exitSuccess <- system $ "rm " ++ filename
-            let updateTimeModifier = [pack "$set" =: [(fieldToText Updated) =: 
+            let updateTimeModifier = ["$set" =: [(fieldToText Updated) =: 
                   currentTime]]
             run pipe dbName $ modify selection updateTimeModifier
-            let updateTextModifier = [pack "$set" =: [(fieldToText TextField) =:
+            let updateTextModifier = ["$set" =: [(fieldToText TextField) =:
                   (init modifiedText)]] -- strips the newline
             run pipe dbName $ modify selection updateTextModifier
-
             return []

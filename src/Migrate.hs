@@ -1,9 +1,10 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Migrate (
     addDateCreatedToAllCollections
 ) where
 
 import Database.MongoDB
-import Data.Text (pack)
 import Data.Time
 import Control.Monad.Trans
 
@@ -23,6 +24,6 @@ addDateCreatedToAllItems :: Pipe -> DatabaseName -> Collection ->
   IO (Either Failure ())
 addDateCreatedToAllItems pipe dbName collection = do 
   let beginning = read "2013-12-21 00:00:00" :: UTCTime
-      selection = [pack "created" =: [pack "$exists" =: False]]
-      modifier = [pack "$set" =: [(fieldToText Created) =: beginning]]
+      selection = ["created" =: ["$exists" =: False]]
+      modifier = ["$set" =: [(fieldToText Created) =: beginning]]
   run pipe dbName $ modify (select selection collection) modifier
