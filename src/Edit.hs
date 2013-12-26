@@ -22,7 +22,7 @@ edit dbName args = do
     Left failure -> return []
     Right docs -> do
       currentTime <- getCurrentTime
-      let ObjId itemId = valueAt (fieldToText ItemId) (docs !! (n-1))
+      let ObjId itemId = valueAt (fieldToText ItemId) (docs !! n)
           query = select [(fieldToText ItemId) =: itemId]
             (docTypeToText docType)
       mdoc <- run pipe dbName $ findOne query
@@ -34,8 +34,8 @@ edit dbName args = do
           Just doc -> do
             let String text = valueAt (fieldToText TextField) doc
                 filename = "/Users/rose/phil/tempedit"
-                selection = select [(fieldToText ItemId) =: itemId]
-                  (docTypeToText docType)
+                collection = (docTypeToText docType)
+                selection = select [(fieldToText ItemId) =: itemId] collection
             writeFile filename (unpack text)
             exitSuccess <- system $ "vi " ++ filename
             modifiedText <- readFile filename

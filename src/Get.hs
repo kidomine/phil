@@ -5,13 +5,16 @@ module Get (
   , constructSelection
   , getFlashcards
   , getGoals
+  , recordGet
+  , getLastGet
+  , getDocs
 ) where
 
 import Database.MongoDB
 import Data.Time
 import Data.Time.Format.Human
 import Control.Monad.Trans (liftIO)
-import Data.List hiding (find)
+import Data.List hiding (find, insert)
 import Data.Text (unpack, Text)
 import Data.Int
 import Data.Char
@@ -77,17 +80,94 @@ getFormattedDocs currentTime docs args resultsSoFar = case docs of
                 zipWith (++) resultsSoFar (displayTags docs)
           _ -> getFormattedDocs currentTime docs tailArgs resultsSoFar
 
-get :: DatabaseName -> [String] -> IO [String]
-get dbName arguments = do
-  case arguments of
-    docTypeArg:args -> do
-      let docType = getDocType docTypeArg
-      mDocs <- getDocs dbName docType args
+getLastGet :: DatabaseName -> IO String
+getLastGet dbName = do
+  pipe <- sharedPipe
+  let query = select [] (docTypeToText LastGet)
+  mdoc <- run pipe dbName $ findOne query
+  case mdoc of
+    Left failure -> do putStrLn $ show failure
+                       return ""
+    Right mDoc -> case mDoc of
+      Just doc -> do let String result = valueAt (fieldToText TextField) doc
+                     return $ unpack result
+
+recordGet :: DatabaseName -> String -> IO ()
+recordGet dbName input = do
+  pipe <- sharedPipe
+  let query = select [] (docTypeToText LastGet)
+  mdoc <- run pipe dbName $ findOne query
+  case mdoc of
+    Left failure -> putStrLn $ show failure
+    Right mDoc -> case mDoc of
+      Nothing -> do let newDoc = [(fieldToText TextField) =: input]
+                    run pipe dbName $ insert (docTypeToText LastGet) newDoc
+                    return ()
+      Just _ -> do let selection = select [] (docTypeToText LastGet)
+                       modifier = ["$set" =: [(fieldToText TextField) =: input]]
+                   run pipe dbName $ modify selection modifier
+                   return ()
+
+getDocs :: DatabaseName -> [String] -> IO [Document]
+getDocs dbName args = do
+  pipe <- sharedPipe
+  let (query, keywords, docType) = getQueryAndKeywords args
+  case keywords of 
+    [] -> do
+      cursor <- run pipe dbName $ find query
+      mDocs <- run pipe dbName $ rest (case cursor of Right c -> c)
       case mDocs of
-        [] -> return []
-        docs -> do
-          currentTime <- getCurrentTime
-          return $ getFormattedDocs currentTime docs args []
+        Right docs -> return docs
+    _ -> do
+      actionResult <- ensureIndexForTextSearch dbName docType
+      case actionResult of
+        Left failure -> do putStrLn $ show failure
+                           return []
+        Right () -> do
+          mDoc <- run pipe dbName $ runCommand $ 
+            getTextSearchArgument docType keywords query
+          case mDoc of
+            Left failure -> do putStrLn $ show failure
+                               return []
+            Right doc -> let Array results = valueAt "results" doc
+                             ds = [d | Doc d <- results]
+                         in return ds
+
+get :: DatabaseName -> [String] -> IO [String]
+get dbName args = do
+  recordGet dbName (unwords args)
+  docs <- getDocs dbName args
+  case docs of 
+    [] -> return []
+    _ -> do
+      currentTime <- getCurrentTime
+      return $ getFormattedDocs currentTime docs args []
+
+getQueryAndKeywords :: [String] -> (Query, [String], DocType)
+getQueryAndKeywords arguments = case arguments of
+  docTypeArg:args -> 
+    case args of
+      "tags":tailArgs -> 
+          let query = select [(fieldToText TypeField) =: docTypeArg] 
+                (docTypeToText Tag)
+          in (query, [], undefined)
+      _ -> let (arguments, ks) = break (isUpper . head) args
+               query = constructSelection (getDocType docTypeArg) arguments [] 
+                  [(fieldToText Done) =: ["$exists" =: False]]
+           in (query, ks, getDocType docTypeArg)
+
+getTextSearchArgument :: DocType -> [String] -> Query -> Document
+getTextSearchArgument docType keywords query =
+  ["text" =: (docTypeToText docType),
+    "search" =: (unwords keywords), 
+      "filter" =: (selector $ selection query)]
+
+ensureIndexForTextSearch :: DatabaseName -> DocType -> IO (Either Failure ())
+ensureIndexForTextSearch dbName docType = do
+  let order = [(fieldToText TextField) =: (1 :: Int32)]
+      docIndex =  index (docTypeToText docType) order
+  pipe <- sharedPipe
+  run pipe dbName $ createIndex docIndex
 
 getGoals :: DatabaseName -> IO [Document]
 getGoals dbName = do
@@ -109,51 +189,6 @@ getFlashcards dbName args = do
   case mdocs of 
     Left _ -> return []
     Right docs -> return docs
-
-getDocs :: DatabaseName -> DocType -> [String] -> IO [Document]
-getDocs dbName docType args = do
-  pipe <- sharedPipe
-  case args of
-    "tags":tailArgs -> do
-       let selection = select [(fieldToText TypeField) =: 
-             (docTypeToText docType)] (docTypeToText Tag)
-       cursor <- run pipe dbName $ find selection
-       mDocs <- run pipe dbName $ rest (case cursor of Right c -> c)
-       case mDocs of 
-         Left failure -> do putStrLn $ show failure
-                            return []
-         Right docs -> return docs
-    _ -> let (arguments, ks) = break (isUpper . head) args
-             query = constructSelection docType arguments [] 
-               [(fieldToText Done) =: ["$exists" =: False]]
-         in case ks of 
-            [] -> do
-              cursor <- run pipe dbName $ find query
-              mDocs <- run pipe dbName $ rest (case cursor of Right c -> c)
-              case mDocs of
-                Left failure -> do putStrLn $ show failure
-                                   return []
-                Right docs -> return docs
-            keywords -> do 
-              let order = [(fieldToText TextField) =: (1 :: Int32)]
-                  docIndex =  index (docTypeToText docType) order
-              actionResult <- run pipe dbName $ createIndex docIndex
-              case actionResult of
-                Left failure -> do putStrLn $ show failure
-                                   return []
-                Right () -> do
-                  putStrLn $ "index is " ++ show docIndex
-                  run pipe dbName $ ensureIndex docIndex
-                  mDoc <- run pipe dbName $ runCommand 
-                    ["text" =: (docTypeToText docType),
-                      "search" =: (unwords keywords), 
-                        "filter" =: (selector $ selection query)]
-                  case mDoc of
-                    Left failure -> do putStrLn $ show failure
-                                       return []
-                    Right doc -> let Array results = valueAt "results" doc
-                                     ds = [d | Doc d <- results]
-                                 in return ds
                             
 -- | Recursive function that builds up the selector based on args
 -- When there are no args left to examine, we check if we've

@@ -110,13 +110,14 @@ getFieldsForFlashcard doc inputWords tagsSoFar =
       | otherwise -> getFieldsForFlashcard
           doc tailWords (tagsSoFar ++ [firstWord])
 
-tagIsNew :: Pipe -> DatabaseName -> DocType -> String -> IO Bool
-tagIsNew pipe dbName docType t =
+tagIsNew :: DatabaseName -> DocType -> String -> IO Bool
+tagIsNew dbName docType t =
   if (wordIsReserved t) then return False
   else do
-    cursor <- run pipe dbName $ 
-      find $ select [(fieldToText TypeField) =: (docTypeToText docType),
-        (fieldToText TextField) =: t] (docTypeToText Tag)
+    pipe <- sharedPipe
+    let query = select [(fieldToText TypeField) =: (docTypeToText docType),
+          (fieldToText TextField) =: t] (docTypeToText Tag)
+    cursor <- run pipe dbName $ find query
     docs <- run pipe dbName $ rest (case cursor of Right c -> c)
     case docs of 
       Left failure -> do putStrLn $ show failure
@@ -124,25 +125,27 @@ tagIsNew pipe dbName docType t =
       Right documents | (length documents) == 0 -> return True
                       | otherwise -> return False
 
-addNewTag :: Pipe -> DatabaseName -> DocType -> String -> IO ()
-addNewTag pipe dbName docType t = do
-    new <- tagIsNew pipe dbName docType t
-    if new 
-        then do now <- getCurrentTime
-                e <- run pipe dbName $ insert (docTypeToText Tag) $
-                       [(fieldToText TextField) =: t, (fieldToText TypeField) =:
-                         (docTypeToText docType), (fieldToText Created) =: now]
-                return ()
-        else
-          return ()
+addNewTag :: DatabaseName -> DocType -> String -> IO ()
+addNewTag dbName docType t = do
+  pipe <- sharedPipe
+  new <- tagIsNew dbName docType t
+  if new 
+      then do 
+        now <- getCurrentTime
+        let newDoc = [(fieldToText TextField) =: t, (fieldToText TypeField) =:
+                       (docTypeToText docType), (fieldToText Created) =: now]
+        run pipe dbName $ insert (docTypeToText Tag) newDoc
+        return ()
+      else
+        return ()
 
 add :: DatabaseName -> DocType -> [String] -> IO [String]
 add dbName docType inputWords = do
   pipe <- sharedPipe
   if docIsValid docType inputWords
     then do
-      mapM (addNewTag pipe dbName docType) 
-        (takeWhile (not . isUpper . head) inputWords) -- TODO test this
+      mapM (addNewTag dbName docType) 
+        (takeWhile (not . isUpper . head) inputWords)
       doc <- getFieldsForType docType inputWords 
       e <- run pipe dbName $ insert (docTypeToText docType) doc
       case e of

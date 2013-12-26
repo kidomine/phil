@@ -143,7 +143,7 @@ review 144
 
 ### Delete
 <pre>
-d fc 2
+d 2 (after earching for fc)
 </pre>
 
 ### Test
@@ -167,7 +167,7 @@ got it wrong.
 
 ### Delete
 <pre>
-d event 2
+d 2 (after searching for event)
 </pre>
 
 # Other operations

@@ -12,23 +12,20 @@ import Database.MongoDB
 import Utils
 import Get
 
-deleteItem :: DatabaseName -> [String] -> IO [String]
-deleteItem dbName args = do
+deleteItem :: DatabaseName -> Int -> IO ()
+deleteItem dbName n = do
   pipe <- sharedPipe
-  let docType = getDocType $ head args
-      n = read (args !! 1) :: Int
-  run pipe dbName $ find (select [] (docTypeToText docType)) >>= rest >>= (del 
-    pipe docType n)
-  return []
-
-del :: Pipe -> DocType -> Int -> [Document] -> Action IO ()
-del pipe docType n docs = do
+  lastGet <- getLastGet dbName
+  let docType = getDocType $ head (words lastGet)
+  docs <- getDocs dbName $ words lastGet
   let ObjId itemId = valueAt (fieldToText ItemId) (docs !! (n-1))
-  deleteOne $ select [(fieldToText ItemId) =: itemId] (docTypeToText docType)
+      query = select [(fieldToText ItemId) =: itemId] (docTypeToText docType)
+  run pipe dbName $ deleteOne query 
+  return ()
 
 -- | Delete all documents of a certain type from db
 deleteAll :: DatabaseName -> DocType -> IO [String]
 deleteAll dbName docType = do
   pipe <- sharedPipe
-  e <- run pipe dbName $ delete (select [] (docTypeToText docType))
+  run pipe dbName $ delete (select [] (docTypeToText docType))
   return []

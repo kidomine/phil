@@ -48,9 +48,13 @@ scoreCases = TestLabel "Score test cases" (TestList [
 
 eventCases = TestLabel "Event test cases" (TestList [
   testTimeRangesAreValid, testTimeRangesAreInvalid, testEventIsValid])
+
+
+--otherCases = TestLabel "Other test cases" (TestList [
+  --testRecordLastGet])
   
 main = runTestTT $ TestList [todoCases, noteCases, flashcardCases, scoreCases,
-                             eventCases]
+                             eventCases] --, otherCases]
 
 -- 
 -- Validating items
@@ -116,7 +120,8 @@ testDeleteTodo = TestCase (do
   add TestDB Todo ["tag1", "First", "shimmer"]
   add TestDB Todo ["second", "Here"]
   add TestDB Todo ["tag2", "Third"]
-  deleteItem TestDB ["todo", "2"]
+  get TestDB ["todo"]
+  deleteItem TestDB 2
   results <- get TestDB ["todo"]
   case results of 
     [] -> assertFailure "Didn't get any todos from the DB"
@@ -126,15 +131,16 @@ testDeleteTodo = TestCase (do
 
 testDeleteNote = TestCase (do
   deleteAll TestDB Note
-  add TestDB Note ["tag1", "First", "glitter"]
-  add TestDB Note ["second", "Here"]
+  add TestDB Note ["tag2", "First", "glitter"]
+  add TestDB Note ["second", "Bubbles"]
   add TestDB Note ["tag2", "Third"]
-  deleteItem TestDB ["note", "2"]
+  get TestDB ["note", "tag2"]
+  deleteItem TestDB 2
   results <- get TestDB ["note"]
   case results of 
     [] -> assertFailure "Didn't get any notes from the DB"
     strings -> assertEqual "The second note should have been deleted" 
-      (2, "1 - First glitter", "2 - Third")
+      (2, "1 - First glitter", "2 - Bubbles")
         (length strings, head strings, strings !! 1))
 
 --
@@ -253,14 +259,14 @@ testTagIsNewTrue = TestCase (do
   deleteAll TestDB Tag
   add TestDB Note ["music", "First", "cow"]
   pipe <- sharedPipe
-  result <- (tagIsNew pipe TestDB Note "music")
+  result <- (tagIsNew TestDB Note "music")
   assertEqual "Should find that the 'music' tag already exists" False result)
 
 testTagIsNewFalse = TestCase (do
   deleteAll TestDB Tag
   add TestDB Note ["fly", "First", "plane"]
   pipe <- sharedPipe
-  result <- (tagIsNew pipe TestDB Note "music")
+  result <- (tagIsNew TestDB Note "music")
   assertEqual "Should find that the 'music' tag is new" True result)
 
 testCompleteTodo = TestCase (do
@@ -331,3 +337,38 @@ testTimeRangesAreInvalid = TestCase (do
 testEventIsValid = TestCase (do
   let shouldBeTrue = eventIsValid ["12/26", "4:30pm", "-", "7pm", "tag", "This"]
   assertEqual "The event should be valid" True shouldBeTrue)
+
+{-
+testRecordLastGet = TestCase (do
+  pipe <- sharedPipe 
+  deleteAll TestDB LastGet
+  recordGet TestDB "todo"
+  result <- getLastGet TestDB
+  assertEqual "Should be the last get" "todo" result 
+  recordGet TestDB "todo mountain"
+  result <- getLastGet TestDB
+  assertEqual "Should be the last get" "todo mountain" result )
+
+testFullRecordLastGet = TestCase (do
+  pipe <- sharedPipe 
+  deleteAll TestDB Todo
+  deleteAll TestDB LastGet
+  add TestDB Todo ["Fly", "to", "Verona"]
+  add TestDB Todo ["Get", "tickets", "to", "see", "Kanye"]
+  add TestDB Todo ["mountain", "Go", "skiing"]
+  add TestDB Todo ["mountain", "Snowboard"]
+  get TestDB ["todo", "mountain"]
+  results <- get TestDB ["todo", "mountain"]
+  assertEqual "There should be two todos tagged 'mountain'" 2 (length results)
+  deleteItem TestDB 2
+  results <- get TestDB ["todo", "mountain"]
+  assertEqual "There should be 1 todo tagged 'mountain'" (1, "1 - Go skiing")
+    ((length results), (head results))
+  results <- get TestDB ["todo"]
+  assertEqual "There suhold be two todos" 2 (length results)
+  deleteItem TestDB 1
+  results <- get TestDB ["todo"]
+  putStrLn "WHAT"
+  assertEqual "There should be 1 todo left" (1, "1 - Get tickets to see Kanye")
+    ((length results), (head results)))
+    -}

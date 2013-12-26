@@ -112,7 +112,7 @@ exec inputState (fn:args) =
         docs <- getFlashcards ProdDB args
         testLoop inputState docs args testCount True
     "g" -> get ProdDB args
-    "d" -> do deleteItem ProdDB args
+    "d" -> do deleteItem ProdDB (read (head args) :: Int)
               get ProdDB [(head args)]
     _ | eventIsValid (fn:args) -> add ProdDB Event (fn:args)
       | otherwise -> return ["I don't recognize that command"]

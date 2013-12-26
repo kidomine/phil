@@ -26,7 +26,7 @@ import Data.Time
 import Database.MongoDB
 
 data DocType = Todo | Tag | Event | Note | Goal | Flashcard 
-               | Reminder | Score | TestCount | GoalScore
+               | Reminder | Score | TestCount | GoalScore | LastGet
 data DocField = TextField | TypeField | Priority | Tags | Created
                 | DueBy | Question | Answer | Count | ItemId | QuestionId
                 | TestCountField | ScoreField | StartDate | EndDate | GoalId
@@ -229,3 +229,4 @@ docTypeToText docType = case docType of
   Score -> pack "score"
   TestCount -> pack "testCount"
   GoalScore -> pack "goalScore"
+  LastGet -> pack "lastGet"
