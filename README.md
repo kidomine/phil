@@ -7,6 +7,8 @@
 <pre>
 mongod --dbpath mongoFiles --setParameter textSearchEnabled=true
 Make sure the mongoFiles folder is backed up
+A log of all text input to the program is
+located at ~/Desktop/Dropbox/log.txt.
 </pre>
 
 ### Backup the db

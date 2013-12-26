@@ -36,7 +36,8 @@ main = bracketOnError (initializeInput defaultSettings)
             case minput of
                 Nothing -> return ()
                 Just "quit" -> return ()
-                Just input -> do let statement = words input
+                Just input -> do appendInputToLog input
+                                 let statement = words input
                                  results <- case statement of
                                      [] -> return []
                                      _ -> exec inputState statement
@@ -46,6 +47,13 @@ main = bracketOnError (initializeInput defaultSettings)
                                                 mapM_ outputStrLn 
                                                     (results ++ [""])
                                             main
+
+appendInputToLog :: String -> IO ()
+appendInputToLog input =
+  case input of
+    "" -> return ()
+    "\n" -> return ()
+    _ -> appendFile "/Users/rose/Desktop/Dropbox/log.txt" (input ++ "\n")
 
 exec :: InputState -> [String] -> IO [String]
 exec inputState (fn:args) = 
