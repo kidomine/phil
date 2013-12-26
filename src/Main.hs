@@ -56,6 +56,15 @@ appendInputToLog input =
     "\n" -> return ()
     _ -> appendFile "/Users/rose/Desktop/Dropbox/log.txt" (input ++ "\n")
 
+lastN :: Int -> [a] -> [a]
+lastN n xs = foldl' (const . drop 1) xs (drop n xs)
+
+-- | Shows the n lines most recently appended to the log
+showLog :: Int -> IO [String]
+showLog n = do
+  file <- readFile "/Users/rose/Desktop/Dropbox/log.txt"
+  return $ ["", ""] ++ (init $ lastN (n + 1) (lines file))
+
 exec :: InputState -> [String] -> IO [String]
 exec inputState (fn:args) = 
     case unpack (pack fn) of
@@ -66,6 +75,7 @@ exec inputState (fn:args) =
         "fc" -> add ProdDB Flashcard args
         "goal" -> add ProdDB Goal args
         "done" -> completeTodo ProdDB (read (head args) :: Int)
+        "log" -> showLog (read (head args) :: Int)
         "review" -> do 
                       result <- review ProdDB args
                       return [result]

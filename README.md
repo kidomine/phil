@@ -281,3 +281,9 @@ breaks that up as 'south african' 'columbae' and 'math'
 a capitalized word means all of this word and the next words are in the
 content -- they're not tags.
 </pre>
+
+### View the log
+<pre>
+To see the last n lines appended to the log, run
+log 15
+</pre>
