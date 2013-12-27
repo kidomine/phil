@@ -35,7 +35,7 @@ edit dbName n = do
         let filename = "/Users/rose/phil/tempedit"
             sel = selection query
             excludedLabels = ["_id", "created", "updated", "questionId", 
-                              "goalId"]
+                              "goalId", "count", "testCount"]
             modifiableFields = exclude excludedLabels doc
             unmodifiableFields = include excludedLabels doc
         writeFile filename (docToStr modifiableFields)
@@ -73,8 +73,7 @@ fieldToStr f = (unpack $ label f) ++ ":" ++ (show $ value f)
 strToField :: String -> Field
 strToField s =
   case splitAboutSubstring s ":" of
-    Just (label, valueString) ->
-      (pack label) =: (readValue (pack label) valueString)
+    Just (label, valueString) -> (pack label) =: (readValue (pack label) valueString)
 
 readValue :: Label -> String -> Value
 readValue label valueString = 
@@ -92,15 +91,16 @@ readValue label valueString =
     "startDate" -> val (read valueString :: UTCTime)
     "endDate" -> val (read valueString :: UTCTime)
     "done" -> val (read valueString :: UTCTime)
+    x -> error $ "The bad value is " ++ (show x)
 
 strToDoc :: String -> Document
 strToDoc s = map strToField (init (linesByFunnyChar s))
 
 unlinesByFunnyChar :: [String] -> String
-unlinesByFunnyChar = concatMap (++ "…")
+unlinesByFunnyChar = concatMap (++ "^")
 
 linesByFunnyChar :: String -> [String]
-linesByFunnyChar s =  let (l, s') = break (== '…') s
+linesByFunnyChar s =  let (l, s') = break (== '^') s
                            in  l : case s' of
                                         []      -> []
-                                        (_:s'') -> lines s''
+                                        (_:s'') -> linesByFunnyChar s''

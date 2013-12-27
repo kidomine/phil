@@ -56,20 +56,30 @@ displayTag doc =
 displayTags :: [Document] -> [String]
 displayTags docs = map displayTag docs
 
-getFormattedDocs :: UTCTime -> [Document] -> [String] -> [String] -> [String]
-getFormattedDocs currentTime docs args resultsSoFar = case docs of
+getFormattedDocs :: DocType -> UTCTime -> [Document] -> [String] -> [String] -> [String]
+getFormattedDocs docType currentTime docs args resultsSoFar = case docs of
   [] -> []
   _ -> case resultsSoFar of -- the first time looping through, just
                             -- create the numbers
-    [] -> getFormattedDocs currentTime docs args formattedNumbers
+    [] -> getFormattedDocs docType currentTime docs args formattedNumbers
             where 
               formattedNumbers = map (\n -> show n ++ " - ") (take (length 
                 docs) [1..])
     _ -> case args of
-      [] -> let texts = [text | String text <- map (valueAt (fieldToText 
-                  TextField)) docs]
-                items = [unpack str | str <- texts]
-            in zipWith (++) resultsSoFar items
+      [] -> case docType of
+        Flashcard -> let textQuestions = [question | String question <- map (valueAt
+                           (fieldToText Question)) docs]
+                         textAnswers = [answer | String answer <- map (valueAt 
+                           (fieldToText Answer)) docs]
+                         questions = [unpack t | t <- textQuestions]
+                         answers = [unpack t | t <- textAnswers]
+                         qs = zipWith (++) questions (take (length questions) (repeat "? "))
+                         qas = zipWith (++) qs answers
+                     in zipWith (++) resultsSoFar qas
+        _ -> let texts = [text | String text <- map (valueAt (fieldToText 
+                   TextField)) docs]
+                 items = [unpack str | str <- texts]
+             in zipWith (++) resultsSoFar items
       firstArg:tailArgs -> 
         case firstArg of
           "created" -> 
@@ -78,12 +88,12 @@ getFormattedDocs currentTime docs args resultsSoFar = case docs of
                  dates = zipWith (++) bareDates (take (length bareDates) (repeat
                    " - "))
                  results = zipWith (++) resultsSoFar dates
-             in getFormattedDocs currentTime docs tailArgs results
+             in getFormattedDocs docType currentTime docs tailArgs results
           "with" -> 
              case (head tailArgs) of 
-              "tags" -> getFormattedDocs currentTime docs (tail tailArgs) $ 
+              "tags" -> getFormattedDocs docType currentTime docs (tail tailArgs) $
                 zipWith (++) resultsSoFar (displayTags docs)
-          _ -> getFormattedDocs currentTime docs tailArgs resultsSoFar
+          _ -> getFormattedDocs docType currentTime docs tailArgs resultsSoFar
 
 runLastGet :: DatabaseName -> IO [String]
 runLastGet dbName = do
@@ -170,7 +180,7 @@ get dbName arguments = do
           [] -> return []
           _ -> do
             currentTime <- getCurrentTime
-            return $ getFormattedDocs currentTime docs args []
+            return $ getFormattedDocs (getDocType docTypeArg) currentTime docs args []
 
 frequencyList :: [String] -> [(String, Int)]
 frequencyList s = map (\l->(head l, length l)) . group . sort $ s
