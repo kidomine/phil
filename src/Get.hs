@@ -151,7 +151,10 @@ getDocs dbName args = do
                          in return ds
 
 get :: DatabaseName -> [String] -> IO [String]
-get dbName args = do
+get dbName arguments = do
+  let args = case arguments of
+        "done":tailArgs -> ["todo"] ++ ["done"] ++ tailArgs
+        a -> a
   recordGet dbName (unwords args)
   docs <- getDocs dbName args
   case docs of 
