@@ -16,11 +16,7 @@ import Utils
 edit :: DatabaseName -> Int -> IO [String]
 edit dbName n = do
   pipe <- sharedPipe
-  lastGet <- getLastGet dbName
-  let docType = getDocType $ head (words lastGet)
-  docs <- getDocs dbName $ words lastGet
-  let ObjId itemId = valueAt (fieldToText ItemId) (docs !! (n-1))
-      query = select [(fieldToText ItemId) =: itemId] (docTypeToText docType)
+  query <- getLastQueryForOne dbName n
   mdoc <- run pipe dbName $ findOne query
   currentTime <- getCurrentTime
   case mdoc of
@@ -31,16 +27,15 @@ edit dbName n = do
       Just doc -> do
         let String text = valueAt (fieldToText TextField) doc
             filename = "/Users/rose/phil/tempedit"
-            collection = (docTypeToText docType)
-            selection = select [(fieldToText ItemId) =: itemId] collection
+            sel = selection query
         writeFile filename (unpack text)
         exitSuccess <- system $ "vi " ++ filename
         modifiedText <- readFile filename
         exitSuccess <- system $ "rm " ++ filename
         let updateTimeModifier = ["$set" =: [(fieldToText Updated) =: 
               currentTime]]
-        run pipe dbName $ modify selection updateTimeModifier
+        run pipe dbName $ modify sel updateTimeModifier
         let updateTextModifier = ["$set" =: [(fieldToText TextField) =:
               (init modifiedText)]] -- strips the newline
-        run pipe dbName $ modify selection updateTextModifier
+        run pipe dbName $ modify sel updateTextModifier
         return []

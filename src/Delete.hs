@@ -15,12 +15,8 @@ import Get
 deleteItem :: DatabaseName -> Int -> IO ()
 deleteItem dbName n = do
   pipe <- sharedPipe
-  lastGet <- getLastGet dbName
-  let docType = getDocType $ head (words lastGet)
-  docs <- getDocs dbName $ words lastGet
-  let ObjId itemId = valueAt (fieldToText ItemId) (docs !! (n-1))
-      query = select [(fieldToText ItemId) =: itemId] (docTypeToText docType)
-  run pipe dbName $ deleteOne query 
+  query <- getLastQueryForOne dbName n
+  run pipe dbName $ deleteOne $ selection query 
   return ()
 
 -- | Delete all documents of a certain type from db

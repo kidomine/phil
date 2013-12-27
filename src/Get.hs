@@ -7,6 +7,7 @@ module Get (
   , getGoals
   , recordGet
   , getLastGet
+  , getLastQueryForOne
   , getDocs
   , runLastGet
 ) where
@@ -97,6 +98,16 @@ getLastGet dbName = do
     Right mDoc -> case mDoc of
       Just doc -> do let String result = valueAt (fieldToText TextField) doc
                      return $ unpack result
+
+getLastQueryForOne :: DatabaseName -> Int -> IO Query
+getLastQueryForOne dbName n = do
+  pipe <- sharedPipe
+  lastGet <- getLastGet dbName
+  let docType = getDocType $ head (words lastGet)
+  docs <- getDocs dbName $ words lastGet
+  let ObjId itemId = valueAt (fieldToText ItemId) (docs !! (n-1))
+      query = select [(fieldToText ItemId) =: itemId] (docTypeToText docType)
+  return query
 
 recordGet :: DatabaseName -> String -> IO ()
 recordGet dbName input = do

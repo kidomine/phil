@@ -93,7 +93,8 @@ exec inputState (fn:args) =
     "note" -> add ProdDB Note args
     "fc" -> add ProdDB Flashcard args
     "goal" -> add ProdDB Goal args
-    "done" -> completeTodo ProdDB (read (head args) :: Int)
+    "done" -> do completeTodo ProdDB (read (head args) :: Int)
+                 runLastGet ProdDB
     "log" -> showLog (read (head args) :: Int)
     "review" -> do result <- review ProdDB args
                    return [result]
