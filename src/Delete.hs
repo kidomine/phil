@@ -20,8 +20,8 @@ deleteItem dbName n = do
   return ()
 
 -- | Delete all documents of a certain type from db
-deleteAll :: DatabaseName -> DocType -> IO [String]
-deleteAll dbName docType = do
+deleteAll :: DocType -> IO [String]
+deleteAll docType = do
   pipe <- sharedPipe
-  run pipe dbName $ delete (select [] (docTypeToText docType))
+  run pipe TestDB $ delete (select [] (docTypeToText docType))
   return []

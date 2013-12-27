@@ -17,6 +17,7 @@ module Utils (
   , isTimeRange
   , isSlashDate
   , splitDateTimeRangeTagsAndText
+  , splitAboutSubstring
 ) where
 
 import Data.Char
@@ -25,7 +26,7 @@ import Data.List (isInfixOf, isPrefixOf, isSuffixOf, inits, tails, stripPrefix)
 import Data.Time
 import Database.MongoDB
 
-data DocType = Todo | Tag | Event | Note | Goal | Flashcard 
+data DocType = Todo | Event | Note | Goal | Flashcard 
                | Reminder | Score | TestCount | GoalScore | LastGet
 data DocField = TextField | TypeField | Priority | Tags | Created
                 | DueBy | Question | Answer | Count | ItemId | QuestionId
@@ -142,7 +143,7 @@ stripSuffix suffix string = take ((length string) - (length suffix)) string
 -- | Splits before and after the first instance of substring in string
 splitAboutSubstring :: String -> String -> Maybe (String, String)
 splitAboutSubstring string substring
-    | (((length starts) == 0) || ((length ends) == 0)) = Nothing
+    | not (substring `isInfixOf` string) = Nothing
     | otherwise = Just (stripSuffix substring (head starts), end)
   where
     starts = filter (isSuffixOf substring) (inits string)
@@ -200,15 +201,10 @@ fieldToText field = case field of
   Done -> pack "done"
   Updated -> pack "updated"
 
--- | Some strings are plural so I can e.g. type 'g notes'
--- When I expect many notes, typeing 'g note' feels wrong.
--- Haha check out the yin and yang below
 getDocType :: String -> DocType
 getDocType docType = case docType of
   "todo" -> Todo
   "todos" -> Todo
-  "tag" -> Tag
-  "tags" -> Tag
   "rem" -> Reminder
   "note" -> Note
   "notes" -> Note
@@ -220,7 +216,6 @@ getDocType docType = case docType of
 docTypeToText :: DocType -> Text
 docTypeToText docType = case docType of
   Todo -> pack "todo"
-  Tag -> pack "tag"
   Note -> pack "note"
   Event -> pack "event"
   Flashcard -> pack "fc"

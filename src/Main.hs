@@ -156,6 +156,8 @@ testLoop inputState docs tags testCount isQuestion =
       let String answer = valueAt (fieldToText Answer) doc
       minput <- queryInput inputState (getInputLine $ (unpack answer) ++ "\n\n")
       case minput of
+          Just "" -> answeredQuestionCorrectly inputState ds tags
+              testCount questionId
           Just "y" -> answeredQuestionCorrectly inputState ds tags
               testCount questionId
           Just "n" -> answeredQuestionIncorrectly inputState ds

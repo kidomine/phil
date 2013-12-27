@@ -12,7 +12,7 @@ module Get (
   , runLastGet
 ) where
 
-import Database.MongoDB
+import Database.MongoDB hiding (group, sort)
 import Data.Time
 import Data.Time.Format.Human
 import Control.Monad.Trans (liftIO)
@@ -20,6 +20,9 @@ import Data.List hiding (find, insert)
 import Data.Text (unpack, Text)
 import Data.Int
 import Data.Char
+import Data.Monoid
+import Data.Function (on)
+import qualified Data.Map as M
 
 import Utils
 
@@ -155,26 +158,65 @@ get dbName arguments = do
   let args = case arguments of
         "done":tailArgs -> ["todo"] ++ ["done"] ++ tailArgs
         a -> a
-  recordGet dbName (unwords args)
-  docs <- getDocs dbName args
-  case docs of 
-    [] -> return []
-    _ -> do
-      currentTime <- getCurrentTime
-      return $ getFormattedDocs currentTime docs args []
+  case args of
+    docTypeArg:tailArgs -> case tailArgs of 
+      "tags":[] -> do
+        recordGet dbName (unwords args)
+        getTags dbName (getDocType docTypeArg)
+      _ -> do
+        recordGet dbName (unwords args)
+        docs <- getDocs dbName args
+        case docs of 
+          [] -> return []
+          _ -> do
+            currentTime <- getCurrentTime
+            return $ getFormattedDocs currentTime docs args []
+
+frequencyList :: [String] -> [(String, Int)]
+frequencyList s = map (\l->(head l, length l)) . group . sort $ s
+
+pairToString :: (String, Int) -> String
+pairToString p = case p of
+  (s, i) -> (show i) ++ " " ++ s
+
+getTags :: DatabaseName -> DocType -> IO [String]
+getTags dbName docType = do
+  let query = select [] (docTypeToText docType)
+  pipe <- sharedPipe
+  cursor <- run pipe dbName $ find query
+  mDocs <- run pipe dbName $ rest (case cursor of Right c -> c)
+  case mDocs of 
+    Left _ -> return []
+    Right docs ->
+      -- mconcat [Just ["hey", "tag"], Just ["yo"], Nothing]
+      -- returns Just ["hey","tag","yo"]
+      let mTags = mconcat (map (maybeList . (look (fieldToText Tags))) docs)
+      in case mTags of 
+        Nothing -> return []
+        Just tags -> do
+          let vl = valueListToStringList tags
+              fList = frequencyList vl
+              sorted = reverse $ sortBy (compare `on` snd) fList
+          return $ map pairToString sorted
+  
+maybeList :: Maybe Value -> Maybe [Value]
+maybeList mv =
+  case mv of 
+    Nothing -> Nothing
+    Just v -> do 
+      let Array av = v
+      return av
+
+valueListToStringList :: [Value] -> [String]
+valueListToStringList vl = map unpack [s | String s <- vl]
 
 getQueryAndKeywords :: [String] -> (Query, [String], DocType)
 getQueryAndKeywords arguments = case arguments of
   docTypeArg:args -> 
-    case args of
-      "tags":tailArgs -> 
-          let query = select [(fieldToText TypeField) =: docTypeArg] 
-                (docTypeToText Tag)
-          in (query, [], undefined)
-      _ -> let (arguments, ks) = break (isUpper . head) args
-               query = constructSelection (getDocType docTypeArg) arguments [] 
-                  [(fieldToText Done) =: ["$exists" =: False]]
-           in (query, ks, getDocType docTypeArg)
+    let (arguments, ks) = break (isUpper . head) args
+        query = constructSelection (getDocType docTypeArg) arguments [] 
+          [(fieldToText Done) =: ["$exists" =: False]]
+    in (query, ks, getDocType docTypeArg)
 
 getTextSearchArgument :: DocType -> [String] -> Query -> Document
 getTextSearchArgument docType keywords query =

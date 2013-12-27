@@ -3,7 +3,6 @@
 module Add (
     add
   , getFieldsForTodo
-  , tagIsNew
   , getQuestion
   , getAnswer
   , incrementTestCount
@@ -37,6 +36,14 @@ getFieldsForType docType inputWords = do
 -- ! Recursive function that builds up the document by merges
 -- builds up list of tags until there are no tags left, then
 -- sets the Tags field as the list of tags
+-- will someday support:
+--  tomorrow
+--  in 3 weeks
+--  in 2 months
+--  by next Wednesday
+--  by next year
+--  by January
+--  by Saturday
 getFieldsForTodo :: Document -> [String] -> [String] -> Document
 getFieldsForTodo doc inputWords tagsSoFar =
   case inputWords of
@@ -110,42 +117,11 @@ getFieldsForFlashcard doc inputWords tagsSoFar =
       | otherwise -> getFieldsForFlashcard
           doc tailWords (tagsSoFar ++ [firstWord])
 
-tagIsNew :: DatabaseName -> DocType -> String -> IO Bool
-tagIsNew dbName docType t =
-  if (wordIsReserved t) then return False
-  else do
-    pipe <- sharedPipe
-    let query = select [(fieldToText TypeField) =: (docTypeToText docType),
-          (fieldToText TextField) =: t] (docTypeToText Tag)
-    cursor <- run pipe dbName $ find query
-    docs <- run pipe dbName $ rest (case cursor of Right c -> c)
-    case docs of 
-      Left failure -> do putStrLn $ show failure
-                         return True
-      Right documents | (length documents) == 0 -> return True
-                      | otherwise -> return False
-
-addNewTag :: DatabaseName -> DocType -> String -> IO ()
-addNewTag dbName docType t = do
-  pipe <- sharedPipe
-  new <- tagIsNew dbName docType t
-  if new 
-      then do 
-        now <- getCurrentTime
-        let newDoc = [(fieldToText TextField) =: t, (fieldToText TypeField) =:
-                       (docTypeToText docType), (fieldToText Created) =: now]
-        run pipe dbName $ insert (docTypeToText Tag) newDoc
-        return ()
-      else
-        return ()
-
 add :: DatabaseName -> DocType -> [String] -> IO [String]
 add dbName docType inputWords = do
   pipe <- sharedPipe
   if docIsValid docType inputWords
     then do
-      mapM (addNewTag dbName docType) 
-        (takeWhile (not . isUpper . head) inputWords)
       doc <- getFieldsForType docType inputWords 
       e <- run pipe dbName $ insert (docTypeToText docType) doc
       case e of

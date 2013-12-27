@@ -32,7 +32,6 @@ todoCases = TestLabel "Todo test cases" (TestList [
    testGetFieldsForTodo,
    testGetTodoFromPriorityAndTag,
    testDisplayTodoTags,
-   testTagIsNewTrue, testTagIsNewFalse,
    testDisplayTodoWithTags,
    testCompleteTodo])
 
@@ -81,7 +80,7 @@ testGetAnswer = TestCase $ assertEqual "Should get answer"
 --
 
 testNoteCreatedTime = TestCase (do
-  deleteAll TestDB Note
+  deleteAll Note
   add TestDB Note ["Newfangled", "technique"]
   results <- get TestDB ["notes", "created"]
   case results of
@@ -90,8 +89,8 @@ testNoteCreatedTime = TestCase (do
       "1 - just now - Newfangled technique" string)
 
 testDisplayTodoTags = TestCase (do
-  deleteAll TestDB Tag
-  deleteAll TestDB Todo
+  deleteAll Tag
+  deleteAll Todo
   add TestDB Todo ["255", "Code some assignment"]
   add TestDB Todo ["228", "Finish pset"]
   results <- get TestDB ["todo", "tags"]
@@ -101,8 +100,8 @@ testDisplayTodoTags = TestCase (do
       ("1 - 255", "2 - 228") (x, head xs))
 
 testDisplayTodoWithTags = TestCase (do
-  deleteAll TestDB Tag
-  deleteAll TestDB Todo
+  deleteAll Tag
+  deleteAll Todo
   add TestDB Todo ["255", "Code some assignment"]
   add TestDB Todo ["228", "school", "Finish pset"]
   results <- get TestDB ["todo", "with", "tags"]
@@ -116,7 +115,7 @@ testDisplayTodoWithTags = TestCase (do
 -- 
 
 testDeleteTodo = TestCase (do
-  deleteAll TestDB Todo
+  deleteAll Todo
   add TestDB Todo ["tag1", "First", "shimmer"]
   add TestDB Todo ["second", "Here"]
   add TestDB Todo ["tag2", "Third"]
@@ -130,7 +129,7 @@ testDeleteTodo = TestCase (do
         (length strings, head strings, strings !! 1))
 
 testDeleteNote = TestCase (do
-  deleteAll TestDB Note
+  deleteAll Note
   add TestDB Note ["tag2", "First", "glitter"]
   add TestDB Note ["second", "Bubbles"]
   add TestDB Note ["tag2", "Third"]
@@ -148,7 +147,7 @@ testDeleteNote = TestCase (do
 --
 
 testGetTodoPriorityOne = TestCase (do
-  deleteAll TestDB Todo
+  deleteAll Todo
   add TestDB Todo ["tag1", "p1", "First", "hi"]
   add TestDB Todo ["tag1", "p2", "Second", "here"]
   add TestDB Todo ["tag1", "Third", "here"]
@@ -160,7 +159,7 @@ testGetTodoPriorityOne = TestCase (do
       1 (length strings))
 
 testGetTodoByDay = TestCase (do
-  deleteAll TestDB Todo
+  deleteAll Todo
   add TestDB Todo ["tag1", "p1", "by", "12/21", "First", "penguin"]
   add TestDB Todo ["tag1", "p2", "by", "12/22", "Second", "here"]
   add TestDB Todo ["tag2", "p2", "Third", "here"]
@@ -173,7 +172,7 @@ testGetTodoByDay = TestCase (do
 
 -- TODO test this
 testGetTodoByTomorrow = TestCase (do
-  deleteAll TestDB Todo
+  deleteAll Todo
   add TestDB Todo ["tag1", "p1", "by", "tomorrow", "First", "here", "heart"]
   add TestDB Todo ["tag2", "p2", "Third", "here"]
   results <- get TestDB ["todo", "tomorrow"]
@@ -188,7 +187,7 @@ testGetTodoByTomorrow = TestCase (do
 --
 
 testGetTodoTags = TestCase (do
-  deleteAll TestDB Todo
+  deleteAll Todo
   add TestDB Todo ["p1", "First", "here", "crazy"]
   add TestDB Todo ["p2", "Second", "here"]
   add TestDB Todo ["water", "Third", "here"]
@@ -200,7 +199,7 @@ testGetTodoTags = TestCase (do
       (1, "1 - Third here") (length strings, head strings))
 
 testGetNoteTags = TestCase (do
-  deleteAll TestDB Note
+  deleteAll Note
   add TestDB Note ["p1", "First", "canoe"]
   add TestDB Note ["p2", "Second", "here"]
   add TestDB Note ["water", "Third", "here"]
@@ -212,7 +211,7 @@ testGetNoteTags = TestCase (do
       (1, "1 - Third here") (length strings, head strings))
 
 testGetTwoTodoTags = TestCase (do
-  deleteAll TestDB Todo
+  deleteAll Todo
   add TestDB Todo ["p1", "school", "First", "seven-hundred"]
   add TestDB Todo ["229", "Second", "here"]
   add TestDB Todo ["water", "229", "Third", "here"]
@@ -231,7 +230,7 @@ testGetFieldsForTodo = TestCase (do
         (getFieldsForTodo [] ["school", "229", "First", "one"] []))
 
 testGetTodoFromPriorityAndTag = TestCase (do
-  deleteAll TestDB Todo
+  deleteAll Todo
   add TestDB Todo ["p1", "school", "First", "snoopy"]
   add TestDB Todo ["school", "Second", "here"]
   add TestDB Todo ["p1", "Third", "here"]
@@ -244,7 +243,7 @@ testGetTodoFromPriorityAndTag = TestCase (do
         (1, "1 - First snoopy") (length strings, head strings))
 
 testGetNoteByTag = TestCase (do
-  deleteAll TestDB Note
+  deleteAll Note
   add TestDB Note ["music", "First", "here", "zoom"]
   add TestDB Note ["water", "Second", "here"]
   results <- get TestDB ["note", "water"]
@@ -255,22 +254,8 @@ testGetNoteByTag = TestCase (do
       "There should be only one note tagged 'water'"
         (1, "1 - Second here") (length strings, head strings))
 
-testTagIsNewTrue = TestCase (do
-  deleteAll TestDB Tag
-  add TestDB Note ["music", "First", "cow"]
-  pipe <- sharedPipe
-  result <- (tagIsNew TestDB Note "music")
-  assertEqual "Should find that the 'music' tag already exists" False result)
-
-testTagIsNewFalse = TestCase (do
-  deleteAll TestDB Tag
-  add TestDB Note ["fly", "First", "plane"]
-  pipe <- sharedPipe
-  result <- (tagIsNew TestDB Note "music")
-  assertEqual "Should find that the 'music' tag is new" True result)
-
 testCompleteTodo = TestCase (do
-  deleteAll TestDB Todo
+  deleteAll Todo
   add TestDB Todo ["beach", "Bring sunscreen"] 
   add TestDB Todo ["beach", "Bring sunglasses"] 
   add TestDB Todo ["beach", "Bring towel"] 
@@ -295,7 +280,7 @@ testCompleteTodo = TestCase (do
 --
 
 testReview = TestCase (do
-  deleteAll TestDB Flashcard
+  deleteAll Flashcard
   add TestDB Flashcard ["229", "lect1", "What", "is", "the", "maximum?", "20"]
   add TestDB Flashcard ["229", "lect1", "What", "is", "the", "minimum?", "-3"]
   add TestDB Flashcard ["229", "lect2", "What", "is", "the", "average?", "1"]
@@ -306,7 +291,7 @@ testReview = TestCase (do
       ++ "\n\nWhat is the average?\n    1\n\n") result)
 
 testIncrementTestCountOnce = TestCase (do
-  deleteAll TestDB TestCount 
+  deleteAll TestCount 
   incrementTestCount TestDB ["purple"]
   mInt <- getTestCount TestDB ["purple"]
   case mInt of
@@ -314,7 +299,7 @@ testIncrementTestCountOnce = TestCase (do
     Just i -> assertEqual "Incremented the test count once" 1 i)
      
 testIncrementTestCountTwice = TestCase (do
-  deleteAll TestDB TestCount 
+  deleteAll TestCount 
   incrementTestCount TestDB ["purple"]
   incrementTestCount TestDB ["purple"]
   mInt <- getTestCount TestDB ["purple"]
@@ -341,7 +326,7 @@ testEventIsValid = TestCase (do
 {-
 testRecordLastGet = TestCase (do
   pipe <- sharedPipe 
-  deleteAll TestDB LastGet
+  deleteAll LastGet
   recordGet TestDB "todo"
   result <- getLastGet TestDB
   assertEqual "Should be the last get" "todo" result 
@@ -351,8 +336,8 @@ testRecordLastGet = TestCase (do
 
 testFullRecordLastGet = TestCase (do
   pipe <- sharedPipe 
-  deleteAll TestDB Todo
-  deleteAll TestDB LastGet
+  deleteAll Todo
+  deleteAll LastGet
   add TestDB Todo ["Fly", "to", "Verona"]
   add TestDB Todo ["Get", "tickets", "to", "see", "Kanye"]
   add TestDB Todo ["mountain", "Go", "skiing"]
