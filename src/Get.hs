@@ -8,6 +8,7 @@ module Get (
   , recordGet
   , getLastGet
   , getDocs
+  , runLastGet
 ) where
 
 import Database.MongoDB
@@ -79,6 +80,11 @@ getFormattedDocs currentTime docs args resultsSoFar = case docs of
               "tags" -> getFormattedDocs currentTime docs (tail tailArgs) $ 
                 zipWith (++) resultsSoFar (displayTags docs)
           _ -> getFormattedDocs currentTime docs tailArgs resultsSoFar
+
+runLastGet :: DatabaseName -> IO [String]
+runLastGet dbName = do
+  lastGet <- getLastGet dbName
+  get dbName (words lastGet)
 
 getLastGet :: DatabaseName -> IO String
 getLastGet dbName = do

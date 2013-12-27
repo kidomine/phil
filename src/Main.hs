@@ -97,7 +97,10 @@ exec inputState (fn:args) =
     "log" -> showLog (read (head args) :: Int)
     "review" -> do result <- review ProdDB args
                    return [result]
-    "edit" -> edit ProdDB args
+    "e" -> do edit ProdDB (read (head args) :: Int)
+              runLastGet ProdDB
+    "edit" -> do edit ProdDB (read (head args) :: Int)
+                 runLastGet ProdDB
     "vi" -> runVim
     "test" -> case (head args) of
       "goals" -> do
@@ -113,7 +116,7 @@ exec inputState (fn:args) =
         testLoop inputState docs args testCount True
     "g" -> get ProdDB args
     "d" -> do deleteItem ProdDB (read (head args) :: Int)
-              get ProdDB [(head args)]
+              runLastGet ProdDB
     _ | eventIsValid (fn:args) -> add ProdDB Event (fn:args)
       | otherwise -> return ["I don't recognize that command"]
 
