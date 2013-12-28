@@ -13,10 +13,11 @@ module Get (
 ) where
 
 import Database.MongoDB hiding (group, sort)
+import Database.MongoDB.Internal.Util ((<.>))
 import Data.Time
 import Data.Time.Format.Human
 import Control.Monad.Trans (liftIO)
-import Data.List hiding (find, insert)
+import Data.List hiding (find)
 import Data.Text (unpack, Text)
 import Data.Int
 import Data.Char
@@ -68,23 +69,23 @@ getFormattedDocs docType currentTime docs args resultsSoFar = case docs of
     _ -> case args of
       [] -> case docType of
         Flashcard -> let textQuestions = [question | String question <- map (valueAt
-                           (fieldToText Question)) docs]
+                           (labelStr Question)) docs]
                          textAnswers = [answer | String answer <- map (valueAt 
-                           (fieldToText Answer)) docs]
+                           (labelStr Answer)) docs]
                          questions = [unpack t | t <- textQuestions]
                          answers = [unpack t | t <- textAnswers]
                          qs = zipWith (++) questions (take (length questions) (repeat "? "))
                          qas = zipWith (++) qs answers
                      in zipWith (++) resultsSoFar qas
-        _ -> let texts = [text | String text <- map (valueAt (fieldToText 
-                   TextField)) docs]
+        _ -> let texts = [text | String text <- map (valueAt (labelStr 
+                   TextLabel)) docs]
                  items = [unpack str | str <- texts]
              in zipWith (++) resultsSoFar items
       firstArg:tailArgs -> 
         case firstArg of
           "created" -> 
              let bareDates = map (humanReadableTime' currentTime) [itemDate | 
-                   UTC itemDate <- (map (valueAt (fieldToText Created)) docs)]
+                   UTC itemDate <- (map (valueAt (labelStr Created)) docs)]
                  dates = zipWith (++) bareDates (take (length bareDates) (repeat
                    " - "))
                  results = zipWith (++) resultsSoFar dates
@@ -109,7 +110,7 @@ getLastGet dbName = do
     Left failure -> do putStrLn $ show failure
                        return ""
     Right mDoc -> case mDoc of
-      Just doc -> do let String result = valueAt (fieldToText TextField) doc
+      Just doc -> do let String result = valueAt (labelStr TextLabel) doc
                      return $ unpack result
 
 getLastQueryForOne :: DatabaseName -> Int -> IO Query
@@ -118,8 +119,8 @@ getLastQueryForOne dbName n = do
   lastGet <- getLastGet dbName
   let docType = getDocType $ head (words lastGet)
   docs <- getDocs dbName $ words lastGet
-  let ObjId itemId = valueAt (fieldToText ItemId) (docs !! (n-1))
-      query = select [(fieldToText ItemId) =: itemId] (docTypeToText docType)
+  let ObjId itemId = valueAt (labelStr ItemId) (docs !! (n-1))
+      query = select [(labelStr ItemId) =: itemId] (docTypeToText docType)
   return query
 
 recordGet :: DatabaseName -> String -> IO ()
@@ -130,11 +131,11 @@ recordGet dbName input = do
   case mdoc of
     Left failure -> putStrLn $ show failure
     Right mDoc -> case mDoc of
-      Nothing -> do let newDoc = [(fieldToText TextField) =: input]
-                    run pipe dbName $ insert (docTypeToText LastGet) newDoc
+      Nothing -> do let newDoc = [(labelStr TextLabel) =: input]
+                    run pipe dbName $ insert_ (docTypeToText LastGet) newDoc
                     return ()
       Just _ -> do let selection = select [] (docTypeToText LastGet)
-                       modifier = ["$set" =: [(fieldToText TextField) =: input]]
+                       modifier = ["$set" =: [(labelStr TextLabel) =: input]]
                    run pipe dbName $ modify selection modifier
                    return ()
 
@@ -200,7 +201,7 @@ getTags dbName docType = do
     Right docs ->
       -- mconcat [Just ["hey", "tag"], Just ["yo"], Nothing]
       -- returns Just ["hey","tag","yo"]
-      let mTags = mconcat (map (maybeList . (look (fieldToText Tags))) docs)
+      let mTags = mconcat (map (maybeList . (look (labelStr Tags))) docs)
       in case mTags of 
         Nothing -> return []
         Just tags -> do
@@ -225,7 +226,7 @@ getQueryAndKeywords arguments = case arguments of
   docTypeArg:args -> 
     let (arguments, ks) = break (isUpper . head) args
         query = constructSelection (getDocType docTypeArg) arguments [] 
-          [(fieldToText Done) =: ["$exists" =: False]]
+          [(labelStr Done) =: ["$exists" =: False]]
     in (query, ks, getDocType docTypeArg)
 
 getTextSearchArgument :: DocType -> [String] -> Query -> Document
@@ -236,10 +237,25 @@ getTextSearchArgument docType keywords query =
 
 ensureIndexForTextSearch :: DatabaseName -> DocType -> IO (Either Failure ())
 ensureIndexForTextSearch dbName docType = do
-  let order = [(fieldToText TextField) =: (1 :: Int32)]
-      docIndex =  index (docTypeToText docType) order
+  --let order = [(labelStr TextLabel) =: (1 :: Int32)]
+      --docIndex =  index (docTypeToText docType) order
   pipe <- sharedPipe
-  run pipe dbName $ createIndex docIndex
+  --run pipe dbName $ createIndex docIndex
+  run pipe dbName $ createTextIndex dbName docType 
+
+keysForDocType :: DocType -> [Label]
+keysForDocType docType = case docType of 
+  Todo -> ["text"]
+  Note -> ["text"]
+  Event -> ["text"]
+  Flashcard -> ["question", "answer"]
+
+createTextIndex :: DatabaseName -> DocType -> Action IO ()
+createTextIndex dbName docType = do
+  let doc = ["ns" =: (databaseNameToText dbName) <.> (docTypeToText docType)
+            ,"key" =: [key =: ("text" :: String) | key <- (keysForDocType docType)]
+            ,"name" =: ("idk_what_name" :: String)]
+  insert_ "system.indexes" doc
 
 getGoals :: DatabaseName -> IO [Document]
 getGoals dbName = do
@@ -254,7 +270,7 @@ getGoals dbName = do
 getFlashcards :: DatabaseName -> [String] -> IO [Document]
 getFlashcards dbName args = do
   pipe <- liftIO sharedPipe
-  let selection = select [(fieldToText Tags) =: ["$all" =: args]]
+  let selection = select [(labelStr Tags) =: ["$all" =: args]]
         (docTypeToText Flashcard)
   cursor <- run pipe dbName $ find selection
   mdocs <- run pipe dbName $ rest (case cursor of Right c -> c)
@@ -270,18 +286,18 @@ constructSelection :: DocType -> [String] -> [String] -> Selector ->
 constructSelection docType args tagsSoFar selector =
   case args of
     "by":tailArgs -> 
-      select [(fieldToText DueBy) =: ["$gt" =:
+      select [(labelStr DueBy) =: ["$gt" =:
         beginningOfTime, "$lte" =: readDate (head tailArgs)]] 
           (docTypeToText docType)
     "done":tailArgs -> -- does not merge with the current selector. 
                        -- must replace the selection for Done does not exist
       constructSelection docType tailArgs tagsSoFar 
-        [(fieldToText Done) =: ["$exists" =: True]]
+        [(labelStr Done) =: ["$exists" =: True]]
     firstArg:tailArgs 
       | isPriority firstArg ->
           case firstArg of
             firstLetter:restOfWord -> constructSelection docType
-              tailArgs tagsSoFar (merge selector [(fieldToText Priority) 
+              tailArgs tagsSoFar (merge selector [(labelStr Priority) 
                 =: (read restOfWord :: Int32)])
       | wordIsReserved firstArg ->
           constructSelection docType tailArgs tagsSoFar selector 
@@ -290,6 +306,6 @@ constructSelection docType args tagsSoFar selector =
             selector
     [] -> case tagsSoFar of 
         [] -> select selector (docTypeToText docType)
-        _ -> let tagsSelector = [(fieldToText Tags) =: 
+        _ -> let tagsSelector = [(labelStr Tags) =: 
                    ["$all" =: tagsSoFar]]
              in select (merge selector tagsSelector) (docTypeToText docType)

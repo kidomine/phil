@@ -126,8 +126,8 @@ goalLoop :: InputState -> [Document] -> IO [String]
 goalLoop inputState docs =
   case docs of
     doc:ds -> do
-      let ObjId goalId = valueAt (fieldToText ItemId) doc
-          String text = valueAt (fieldToText TextField) doc
+      let ObjId goalId = valueAt (labelStr ItemId) doc
+          String text = valueAt (labelStr TextLabel) doc
       minput <- queryInput inputState (getInputLine $ (unpack text) ++ "\n\n")
       case minput of 
         Just "y" -> do
@@ -143,17 +143,17 @@ testLoop :: InputState -> [Document] -> [String] -> Int32 -> Bool -> IO [String]
 testLoop inputState docs tags testCount isQuestion =
   case docs of
   doc:ds ->
-    let ObjId questionId = valueAt (fieldToText ItemId) doc
+    let ObjId questionId = valueAt (labelStr ItemId) doc
     in case isQuestion of
     True -> do
       putStrLn "Question\n-----------"
-      let String question = valueAt (fieldToText Question) doc
+      let String question = valueAt (labelStr Question) doc
       minput <- queryInput inputState (getInputLine $ (unpack question) ++ 
         "\n\n")
       testLoop inputState docs tags testCount False
     False -> do
       putStrLn "Answer\n-----------"
-      let String answer = valueAt (fieldToText Answer) doc
+      let String answer = valueAt (labelStr Answer) doc
       minput <- queryInput inputState (getInputLine $ (unpack answer) ++ "\n\n")
       case minput of
           Just "" -> answeredQuestionCorrectly inputState ds tags

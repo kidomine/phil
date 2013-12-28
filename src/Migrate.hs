@@ -25,5 +25,5 @@ addDateCreatedToAllItems :: Pipe -> DatabaseName -> Collection ->
 addDateCreatedToAllItems pipe dbName collection = do 
   let beginning = read "2013-12-21 00:00:00" :: UTCTime
       selection = ["created" =: ["$exists" =: False]]
-      modifier = ["$set" =: [(fieldToText Created) =: beginning]]
+      modifier = ["$set" =: [(labelStr Created) =: beginning]]
   run pipe dbName $ modify (select selection collection) modifier

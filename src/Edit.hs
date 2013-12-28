@@ -10,7 +10,7 @@ import Database.MongoDB
 import Data.Time
 import Data.Text (unpack, pack)
 import Data.Int
-import Data.Bson
+--import Data.Bson
 
 import Get
 import Utils
@@ -31,7 +31,7 @@ edit dbName n = do
     Right mDoc -> case mDoc of
       Nothing -> return []
       Just doc -> do
-        --let String text = valueAt (fieldToText TextField) doc
+        --let String text = valueAt (labelStr TextLabel) doc
         let filename = "/Users/rose/phil/tempedit"
             sel = selection query
             excludedLabels = ["_id", "created", "updated", "questionId", 
@@ -97,10 +97,10 @@ strToDoc :: String -> Document
 strToDoc s = map strToField (init (linesByFunnyChar s))
 
 unlinesByFunnyChar :: [String] -> String
-unlinesByFunnyChar = concatMap (++ "^")
+unlinesByFunnyChar = concatMap (++ "…")
 
 linesByFunnyChar :: String -> [String]
-linesByFunnyChar s =  let (l, s') = break (== '^') s
+linesByFunnyChar s =  let (l, s') = break (== '…') s
                            in  l : case s' of
                                         []      -> []
                                         (_:s'') -> linesByFunnyChar s''

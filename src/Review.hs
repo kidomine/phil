@@ -14,7 +14,7 @@ constructFlashcardSelection :: Selector -> [String] -> [String] -> Query
 constructFlashcardSelection selector inputWords tagsSoFar =
   case inputWords of
     [] -> case tagsSoFar of
-      _ -> let newSelector = [(fieldToText Tags) =: ["$all" =: tagsSoFar]]
+      _ -> let newSelector = [(labelStr Tags) =: ["$all" =: tagsSoFar]]
                in select (merge selector newSelector) (docTypeToText Flashcard)
     firstWord:tailWords 
       | wordIsReserved firstWord ->
@@ -26,8 +26,8 @@ constructFlashcardSelection selector inputWords tagsSoFar =
                      in constructFlashcardSelection selector tailWords newTags
 
 getQA :: Document -> String
-getQA doc = let String question = valueAt (fieldToText Question) doc
-                String answer = valueAt (fieldToText Answer) doc
+getQA doc = let String question = valueAt (labelStr Question) doc
+                String answer = valueAt (labelStr Answer) doc
             in (unpack question) ++ "?\n    " ++ (unpack answer)
 
 getFormattedFlashcards :: [Document] -> [String]

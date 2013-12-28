@@ -18,17 +18,16 @@ scoreGoal :: DatabaseName -> ObjectId -> Int -> IO ()
 scoreGoal dbName goalId score = do
   time <- getCurrentTime
   pipe <- sharedPipe
-  e <- run pipe dbName $ insert (docTypeToText GoalScore) $
-    [(fieldToText Created) =: time,
-     (fieldToText GoalId) =: goalId, 
-     (fieldToText ScoreField) =: score]
-  case e of
-    Right score -> return ()
+  run pipe dbName $ insert_ (docTypeToText GoalScore) $
+    [(labelStr Created) =: time,
+     (labelStr GoalId) =: goalId, 
+     (labelStr ScoreLabel) =: score]
+  return ()
 
 
 formatGoalScore :: DatabaseName -> Document -> IO String
 formatGoalScore dbName scoreDoc = do
-  let ObjId goalId = valueAt (fieldToText ItemId) scoreDoc
+  let ObjId goalId = valueAt (labelStr ItemId) scoreDoc
       selection = select ["_id" =: goalId] (docTypeToText Goal)
   pipe <- sharedPipe
   mDoc <- run pipe dbName $ findOne selection
@@ -37,8 +36,8 @@ formatGoalScore dbName scoreDoc = do
                        return "failed"
     Right mDoc -> case mDoc of 
       Nothing -> return "Didn't find the goal with that goal id."
-      Just goalDoc -> let String text = valueAt (fieldToText TextField) goalDoc
-                          Int32 score = valueAt (fieldToText ScoreField) 
+      Just goalDoc -> let String text = valueAt (labelStr TextLabel) goalDoc
+                          Int32 score = valueAt (labelStr ScoreLabel) 
                             scoreDoc
                   in return $ (show score) ++ " - " ++ (unpack text)
 

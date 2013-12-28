@@ -2,13 +2,13 @@
 
 module Utils (
     isInteger
-  , databaseNameToString
-  , fieldToText
+  , databaseNameToText
+  , labelStr
   , getDocType
   , docTypeToText
   , DatabaseName (..)
   , DocType (..)
-  , DocField (..)
+  , DocLabel(..)
   , sharedPipe
   , run
   , wordIsReserved
@@ -28,14 +28,14 @@ import Database.MongoDB
 
 data DocType = Todo | Event | Note | Goal | Flashcard 
                | Reminder | Score | TestCount | GoalScore | LastGet
-data DocField = TextField | TypeField | Priority | Tags | Created
+data DocLabel = TextLabel | TypeLabel | Priority | Tags | Created
                 | DueBy | Question | Answer | Count | ItemId | QuestionId
-                | TestCountField | ScoreField | StartDate | EndDate | GoalId
+                | TestCountLabel | ScoreLabel | StartDate | EndDate | GoalId
                 | Done | Updated
 data DatabaseName = ProdDB | TestDB
 
 sharedPipe = runIOE $ connect (host "127.0.0.1")
-run p dbName act = access p master (pack $ databaseNameToString dbName) act
+run p dbName act = access p master (databaseNameToText dbName) act
 reservedWords = ["created", "tags", 
                  "today", "yesterday", "tomorrow", "by",
                  "with", "done"] 
@@ -175,27 +175,27 @@ readDate string =
   in UTCTime (fromGregorian 2014 monthNumber dayNumber)
       (timeOfDayToTime $ TimeOfDay 0 0 0)
 
-databaseNameToString :: DatabaseName -> String
-databaseNameToString dbName = case dbName of
-  ProdDB -> "db"
-  TestDB -> "testDB"
+databaseNameToText :: DatabaseName -> Text
+databaseNameToText dbName = case dbName of
+  ProdDB -> pack "db"
+  TestDB -> pack "testDB"
 
-fieldToText :: DocField -> Text
-fieldToText field = case field of
+labelStr :: DocLabel -> Text
+labelStr field = case field of
   Tags -> pack "tags"
-  TextField -> pack "text"
-  TypeField -> pack "type"
+  TextLabel -> pack "text"
+  TypeLabel -> pack "type"
   Priority -> pack "priority"
   Created -> pack "created"
   DueBy -> pack "dueBy"
   Question -> pack "question"
   Answer -> pack "answer"
   Count -> pack "count"
-  ScoreField -> pack "score"
+  ScoreLabel -> pack "score"
   ItemId -> pack "_id"
   QuestionId -> pack "questionId"
   GoalId -> pack "goalId"
-  TestCountField -> pack "testCount"
+  TestCountLabel -> pack "testCount"
   StartDate -> pack "startDate"
   EndDate -> pack "endDate"
   Done -> pack "done"

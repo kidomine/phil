@@ -89,18 +89,17 @@ testNoteCreatedTime = TestCase (do
       "1 - just now - Newfangled technique" string)
 
 testDisplayTodoTags = TestCase (do
-  deleteAll Tag
   deleteAll Todo
   add TestDB Todo ["255", "Code some assignment"]
   add TestDB Todo ["228", "Finish pset"]
+  add TestDB Todo ["228", "Read book"]
   results <- get TestDB ["todo", "tags"]
   case results of 
     [] -> assertFailure "Didn't get any todo tags"
     x:xs -> assertEqual "There should be two todo tags"
-      ("1 - 255", "2 - 228") (x, head xs))
+      ("2 228", "1 255") (x, head xs))
 
 testDisplayTodoWithTags = TestCase (do
-  deleteAll Tag
   deleteAll Todo
   add TestDB Todo ["255", "Code some assignment"]
   add TestDB Todo ["228", "school", "Finish pset"]
@@ -225,8 +224,8 @@ testGetTwoTodoTags = TestCase (do
 
 testGetFieldsForTodo = TestCase (do
   assertEqual "Should get a list of fields for matching two tags"
-    [(fieldToText Tags) =: [("school" :: String), ("229" :: String)],
-      (fieldToText TextField) =: ("First one" :: String)]
+    [(labelStr Tags) =: [("school" :: String), ("229" :: String)],
+      (labelStr TextLabel) =: ("First one" :: String)]
         (getFieldsForTodo [] ["school", "229", "First", "one"] []))
 
 testGetTodoFromPriorityAndTag = TestCase (do

@@ -14,6 +14,6 @@ completeTodo dbName n = do
   pipe <- sharedPipe
   query <- getLastQueryForOne dbName n
   currentTime <- getCurrentTime
-  let modifier = [pack "$set" =: [(fieldToText Done) =: currentTime]]
+  let modifier = [pack "$set" =: [(labelStr Done) =: currentTime]]
   run pipe dbName $ modify (selection query) modifier
   return []

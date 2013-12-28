@@ -49,17 +49,17 @@ getFieldsForTodo doc inputWords tagsSoFar =
   case inputWords of
     [] -> case tagsSoFar of 
             [] -> doc 
-            ts -> merge doc [(fieldToText Tags) =: ts]
+            ts -> merge doc [(labelStr Tags) =: ts]
     (firstLetter:tailLetters):tailWords
       | isUpper firstLetter ->
-          getFieldsForTodo (merge doc [(fieldToText TextField) =: unwords 
+          getFieldsForTodo (merge doc [(labelStr TextLabel) =: unwords 
             inputWords]) [] tagsSoFar
       | firstLetter == 'p' &&
           isInteger tailLetters ->
-            getFieldsForTodo (merge doc [(fieldToText Priority) =: ((read 
+            getFieldsForTodo (merge doc [(labelStr Priority) =: ((read 
               tailLetters) :: Int32)]) tailWords tagsSoFar
       | (firstLetter:tailLetters) == "by" ->
-          getFieldsForTodo (merge doc [(fieldToText DueBy) =: (readDate (head 
+          getFieldsForTodo (merge doc [(labelStr DueBy) =: (readDate (head 
             tailWords))]) (tail tailWords) tagsSoFar
       | otherwise -> getFieldsForTodo doc tailWords 
           (tagsSoFar ++ [firstWord])
@@ -70,10 +70,10 @@ getFieldsForNote doc inputWords tagsSoFar =
   case inputWords of
       [] -> case tagsSoFar of
               [] -> doc
-              ts -> merge doc [(fieldToText Tags) =: ts]
+              ts -> merge doc [(labelStr Tags) =: ts]
       firstWord:tailWords | isUpper (head firstWord) ->
                               getFieldsForNote (merge doc 
-                                [(fieldToText TextField)
+                                [(labelStr TextLabel)
                                   =: unwords inputWords])
                                     [] tagsSoFar
                           | otherwise -> getFieldsForNote 
@@ -83,14 +83,14 @@ getFieldsForEvent :: [String] -> Document
 getFieldsForEvent inputWords = 
   case (splitDateTimeRangeTagsAndText $ unwords inputWords) of
     Just (day, startTime, endTime, tags, text) ->
-      [(fieldToText StartDate) =: (UTCTime day startTime),
-      (fieldToText EndDate) =: (UTCTime day endTime),
-      (fieldToText Tags) =: tags,
-      (fieldToText TextField) =: text]
+      [(labelStr StartDate) =: (UTCTime day startTime),
+      (labelStr EndDate) =: (UTCTime day endTime),
+      (labelStr Tags) =: tags,
+      (labelStr TextLabel) =: text]
 
 getFieldsForGoal :: [String] -> Document
 getFieldsForGoal inputWords =
-  [(fieldToText TextField) =: (unwords inputWords)]
+  [(labelStr TextLabel) =: (unwords inputWords)]
 
 getAnswer :: String -> String
 getAnswer line = let (_, answerWithQuestionMark) = break (=='?') line
@@ -108,11 +108,11 @@ getFieldsForFlashcard doc inputWords tagsSoFar =
   case inputWords of
     [] -> case tagsSoFar of
             [] -> doc
-            ts -> merge doc [(fieldToText Tags) =: ts]
+            ts -> merge doc [(labelStr Tags) =: ts]
     firstWord:tailWords 
       | isUpper (head firstWord) ->
-          getFieldsForFlashcard (merge doc [(fieldToText Question) =: 
-            getQuestion (unwords inputWords), (fieldToText Answer) =: getAnswer
+          getFieldsForFlashcard (merge doc [(labelStr Question) =: 
+            getQuestion (unwords inputWords), (labelStr Answer) =: getAnswer
               (unwords inputWords)]) [] tagsSoFar
       | otherwise -> getFieldsForFlashcard
           doc tailWords (tagsSoFar ++ [firstWord])
@@ -123,19 +123,19 @@ add dbName docType inputWords = do
   if docIsValid docType inputWords
     then do
       doc <- getFieldsForType docType inputWords 
-      e <- run pipe dbName $ insert (docTypeToText docType) doc
+      e <- run pipe dbName $ insert_ (docTypeToText docType) doc
       case e of
         Left failure -> do
           putStrLn $ show failure
           return []
-        _ -> return []
+        Right () -> return []
       return []
     else do return []
 
 getTestCount :: DatabaseName -> [String] -> IO (Maybe Int32)
 getTestCount dbName tags = do
   pipe <- sharedPipe
-  mdoc <- run pipe dbName $ findOne $ select [(fieldToText Tags) =: 
+  mdoc <- run pipe dbName $ findOne $ select [(labelStr Tags) =: 
     ["$all" =: tags]]
       (docTypeToText TestCount)
   case mdoc of 
@@ -144,22 +144,22 @@ getTestCount dbName tags = do
     Right mDoc -> case mDoc of 
       Nothing -> return Nothing
       Just doc -> let Int32 count = valueAt 
-                        (fieldToText Count) doc
+                        (labelStr Count) doc
                   in return $ Just count
 
 incrementTestCount :: DatabaseName -> [String] -> IO ()
 incrementTestCount dbName tags = do
   pipe <- sharedPipe
-  let selection = (select [(fieldToText Tags) =: ["$all" =: tags]] 
+  let selection = (select [(labelStr Tags) =: ["$all" =: tags]] 
         (docTypeToText TestCount))
   mCount <- getTestCount dbName tags
   case mCount of
       Nothing -> do 
-        run pipe dbName $ insert (docTypeToText TestCount)
-          [(fieldToText Tags) =: tags, (fieldToText Count) =: (1 :: Int32)] 
+        run pipe dbName $ insert_ (docTypeToText TestCount)
+          [(labelStr Tags) =: tags, (labelStr Count) =: (1 :: Int32)] 
         return ()
       Just count -> do
-        e <- run pipe dbName $ modify selection ["$inc" =: [(fieldToText Count) 
+        e <- run pipe dbName $ modify selection ["$inc" =: [(labelStr Count) 
                 =: (1 :: Int32)]]
         case e of
           Left _ -> error "Couldn't increment the test count"
@@ -168,8 +168,8 @@ incrementTestCount dbName tags = do
 getQuestionScore :: DatabaseName -> [String] -> Int32 -> ObjectId -> IO Int32
 getQuestionScore dbName tags testCount questionId = do
   pipe <- sharedPipe
-  let selection = select ([(fieldToText Tags) =: ["$all" =: tags], 
-        (fieldToText TestCountField) =: testCount, (fieldToText QuestionId) =: 
+  let selection = select ([(labelStr Tags) =: ["$all" =: tags], 
+        (labelStr TestCountLabel) =: testCount, (labelStr QuestionId) =: 
           questionId]) (docTypeToText Score)
   mResult <- run pipe dbName $ findOne selection
   case mResult of
@@ -177,26 +177,26 @@ getQuestionScore dbName tags testCount questionId = do
                        return 0
     Right mDoc -> case mDoc of
       Nothing -> error "Couldn't find the score"
-      Just doc -> let Int32 scoreInt = valueAt (fieldToText ScoreField) doc
+      Just doc -> let Int32 scoreInt = valueAt (labelStr ScoreLabel) doc
                   in return scoreInt
 
 addScore :: DatabaseName -> [String] -> Int32 -> ObjectId -> Int32 -> IO ()
 addScore dbName tags testCount questionId score = do
   pipe <- sharedPipe
-  e <- run pipe dbName $ insert (docTypeToText Score) $
-    [(fieldToText Tags) =: tags, (fieldToText TestCountField) =: testCount, 
-      (fieldToText QuestionId) =: questionId, (fieldToText ScoreField) =: score]
+  e <- run pipe dbName $ insert_ (docTypeToText Score) $
+    [(labelStr Tags) =: tags, (labelStr TestCountLabel) =: testCount, 
+      (labelStr QuestionId) =: questionId, (labelStr ScoreLabel) =: score]
   case e of 
     Left failure -> do putStrLn $ show failure
                        return ()
-    Right score -> return ()
+    Right () -> return ()
 
 showTestScore :: DatabaseName -> [String] -> Int32 -> IO [String]
 showTestScore dbName tags testCount = do
   pipe <- sharedPipe
   putStrLn $ "test count is " ++ show testCount
-  let matchSelect = [(fieldToText TestCountField) =: testCount,
-                     (fieldToText Tags) =: ["$all" =: tags] ]
+  let matchSelect = [(labelStr TestCountLabel) =: testCount,
+                     (labelStr Tags) =: ["$all" =: tags] ]
   let pipeline = [ ["$match" =: matchSelect],
                       ["$group" =: ["_id" =: empty, "sum" =: 
                           ["$sum" =: ("$score" :: String)]]] ]
