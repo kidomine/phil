@@ -7,9 +7,8 @@ module Add (
   , getAnswer
   , incrementTestCount
   , getTestCount
-  , addScore
-  , getQuestionScore
-  , showTestScore
+  , addFlashcardScore
+  , showFlashcardScore
 ) where
 
 import Database.MongoDB
@@ -165,12 +164,12 @@ incrementTestCount dbName tags = do
           Left _ -> error "Couldn't increment the test count"
           Right _ -> return ()
 
-getQuestionScore :: DatabaseName -> [String] -> Int32 -> ObjectId -> IO Int32
-getQuestionScore dbName tags testCount questionId = do
+getFlashcardScore :: DatabaseName -> [String] -> Int32 -> ObjectId -> IO Int32
+getFlashcardScore dbName tags testCount questionId = do
   pipe <- sharedPipe
   let selection = select ([(labelStr Tags) =: ["$all" =: tags], 
         (labelStr TestCountLabel) =: testCount, (labelStr QuestionId) =: 
-          questionId]) (docTypeToText Score)
+          questionId]) (docTypeToText FlashcardScore)
   mResult <- run pipe dbName $ findOne selection
   case mResult of
     Left failure -> do putStrLn $ "Couldn't find the score.\n" ++ (show failure)
@@ -180,10 +179,11 @@ getQuestionScore dbName tags testCount questionId = do
       Just doc -> let Int32 scoreInt = valueAt (labelStr ScoreLabel) doc
                   in return scoreInt
 
-addScore :: DatabaseName -> [String] -> Int32 -> ObjectId -> Int32 -> IO ()
-addScore dbName tags testCount questionId score = do
+addFlashcardScore :: DatabaseName -> [String] -> Int32 -> ObjectId -> Int32 -> 
+  IO ()
+addFlashcardScore dbName tags testCount questionId score = do
   pipe <- sharedPipe
-  e <- run pipe dbName $ insert_ (docTypeToText Score) $
+  e <- run pipe dbName $ insert_ (docTypeToText FlashcardScore) $
     [(labelStr Tags) =: tags, (labelStr TestCountLabel) =: testCount, 
       (labelStr QuestionId) =: questionId, (labelStr ScoreLabel) =: score]
   case e of 
@@ -191,18 +191,21 @@ addScore dbName tags testCount questionId score = do
                        return ()
     Right () -> return ()
 
-showTestScore :: DatabaseName -> [String] -> Int32 -> IO [String]
-showTestScore dbName tags testCount = do
+showFlashcardScore :: DatabaseName -> [String] -> Int32 -> IO [String]
+showFlashcardScore dbName tags testCount = do
   pipe <- sharedPipe
-  putStrLn $ "test count is " ++ show testCount
+  putStrLn $ "Tested " ++ show testCount ++ " time" 
+    ++ (if testCount == 1 then "" else "s")
   let matchSelect = [(labelStr TestCountLabel) =: testCount,
                      (labelStr Tags) =: ["$all" =: tags] ]
   let pipeline = [ ["$match" =: matchSelect],
-                      ["$group" =: ["_id" =: empty, "sum" =: 
-                          ["$sum" =: ("$score" :: String)]]] ]
-  docs <- run pipe dbName $ aggregate (docTypeToText Score) pipeline
-  case docs of 
+                      ["$group" =: ["_id" =: empty, 
+                          "scoreTotal" =: ["$sum" =: ("$score" :: String)],
+                          "total" =: ["$sum" =: (1 :: Int32)]  ]]  ]
+  mDocs <- run pipe dbName $ aggregate (docTypeToText FlashcardScore) pipeline
+  case mDocs of 
     Left failure -> do putStrLn $ show failure
                        return ["failed"]
-    Right doc -> do let Int32 score = valueAt "sum" (head doc)
-                    return ["score is " ++ show score] 
+    Right docs -> do let Int32 score = valueAt "scoreTotal" (head docs)
+                         Int32 outOf = valueAt "total" (head docs)
+                     return ["score is " ++ (show score) ++ "/" ++ (show outOf)]

@@ -162,20 +162,20 @@ testLoop inputState docs tags testCount isQuestion =
               testCount questionId
           Just "n" -> answeredQuestionIncorrectly inputState ds
               tags testCount questionId
-  [] -> showTestScore ProdDB tags testCount
+  [] -> showFlashcardScore ProdDB tags testCount
                         
 answeredQuestionCorrectly :: InputState -> [Document] -> [String] -> Int32 -> 
   ObjectId -> IO [String]
 answeredQuestionCorrectly inputState docs tags testCount questionId = 
   do putStrLn "\n\n"
-     addScore ProdDB tags testCount questionId (1 :: Int32)
+     addFlashcardScore ProdDB tags testCount questionId (1 :: Int32)
      testLoop inputState docs tags testCount True
 
 answeredQuestionIncorrectly :: InputState -> [Document] -> [String] -> Int32 -> 
   ObjectId -> IO [String]
 answeredQuestionIncorrectly inputState docs tags testCount questionId =
   do putStrLn "\n\n"
-     addScore ProdDB tags testCount questionId (0 :: Int32)
+     addFlashcardScore ProdDB tags testCount questionId (0 :: Int32)
      testLoop inputState docs tags testCount True
 
 -- | Prints help message

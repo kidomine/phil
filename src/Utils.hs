@@ -27,7 +27,7 @@ import Data.Time
 import Database.MongoDB
 
 data DocType = Todo | Event | Note | Goal | Flashcard 
-               | Reminder | Score | TestCount | GoalScore | LastGet
+               | Reminder | FlashcardScore | TestCount | GoalScore | LastGet
 data DocLabel = TextLabel | TypeLabel | Priority | Tags | Created
                 | DueBy | Question | Answer | Count | ItemId | QuestionId
                 | TestCountLabel | ScoreLabel | StartDate | EndDate | GoalId
@@ -221,7 +221,7 @@ docTypeToText docType = case docType of
   Flashcard -> pack "fc"
   Reminder -> pack "rem"
   Goal -> pack "goal"
-  Score -> pack "score"
+  FlashcardScore -> pack "score"
   TestCount -> pack "testCount"
   GoalScore -> pack "goalScore"
   LastGet -> pack "lastGet"
