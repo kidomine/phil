@@ -57,7 +57,8 @@ displayTag doc =
 displayTags :: [Document] -> [String]
 displayTags docs = map displayTag docs
 
-getFormattedDocs :: DocType -> UTCTime -> [Document] -> [String] -> [String] -> [String]
+getFormattedDocs :: DocType -> UTCTime -> [Document] -> [String] -> [String] 
+  -> [String]
 getFormattedDocs docType currentTime docs args resultsSoFar = case docs of
   [] -> []
   _ -> case resultsSoFar of -- the first time looping through, just
@@ -68,13 +69,14 @@ getFormattedDocs docType currentTime docs args resultsSoFar = case docs of
                 docs) [1..])
     _ -> case args of
       [] -> case docType of
-        Flashcard -> let textQuestions = [question | String question <- map (valueAt
-                           (labelStr Question)) docs]
+        Flashcard -> let textQuestions = [question | String question <- map 
+                           (valueAt (labelStr Question)) docs]
                          textAnswers = [answer | String answer <- map (valueAt 
                            (labelStr Answer)) docs]
                          questions = [unpack t | t <- textQuestions]
                          answers = [unpack t | t <- textAnswers]
-                         qs = zipWith (++) questions (take (length questions) (repeat "? "))
+                         qs = zipWith (++) questions (take (length questions) 
+                           (repeat "? "))
                          qas = zipWith (++) qs answers
                      in zipWith (++) resultsSoFar qas
         _ -> let texts = [text | String text <- map (valueAt (labelStr 
@@ -92,8 +94,8 @@ getFormattedDocs docType currentTime docs args resultsSoFar = case docs of
              in getFormattedDocs docType currentTime docs tailArgs results
           "with" -> 
              case (head tailArgs) of 
-              "tags" -> getFormattedDocs docType currentTime docs (tail tailArgs) $
-                zipWith (++) resultsSoFar (displayTags docs)
+              "tags" -> getFormattedDocs docType currentTime docs (tail 
+                  tailArgs) $ zipWith (++) resultsSoFar (displayTags docs)
           _ -> getFormattedDocs docType currentTime docs tailArgs resultsSoFar
 
 runLastGet :: DatabaseName -> IO [String]
@@ -256,7 +258,8 @@ keysForDocType docType = case docType of
 createTextIndex :: DatabaseName -> DocType -> Action IO ()
 createTextIndex dbName docType = do
   let doc = ["ns" =: (databaseNameToText dbName) <.> (docTypeToText docType)
-            ,"key" =: [key =: ("text" :: String) | key <- (keysForDocType docType)]
+            ,"key" =: [key =: ("text" :: String) | key <- (keysForDocType 
+              docType)]
             ,"name" =: ("idk_what_name" :: String)]
   insert_ "system.indexes" doc
 

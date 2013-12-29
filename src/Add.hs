@@ -36,13 +36,6 @@ getFieldsForType docType inputWords = do
 -- builds up list of tags until there are no tags left, then
 -- sets the Tags field as the list of tags
 -- will someday support:
---  tomorrow
---  in 3 weeks
---  in 2 months
---  by next Wednesday
---  by next year
---  by January
---  by Saturday
 getFieldsForTodo :: Document -> [String] -> [String] -> Document
 getFieldsForTodo doc inputWords tagsSoFar =
   case inputWords of
@@ -108,11 +101,17 @@ getFieldsForFlashcard doc inputWords tagsSoFar =
     [] -> case tagsSoFar of
             [] -> doc
             ts -> merge doc [(labelStr Tags) =: ts]
+    "qi":imageFilename:tailWords ->
+      getFieldsForFlashcard (merge doc [(labelStr QuestionImageFilename)
+        =: imageFilename]) tailWords tagsSoFar
+    "ai":imageFilename:tailWords ->
+      getFieldsForFlashcard (merge doc [(labelStr AnswerImageFilename)
+        =: imageFilename]) tailWords tagsSoFar
     firstWord:tailWords 
       | isUpper (head firstWord) ->
           getFieldsForFlashcard (merge doc [(labelStr Question) =: 
             getQuestion (unwords inputWords), (labelStr Answer) =: getAnswer
-              (unwords inputWords)]) [] tagsSoFar
+             (unwords inputWords)]) [] tagsSoFar
       | otherwise -> getFieldsForFlashcard
           doc tailWords (tagsSoFar ++ [firstWord])
 

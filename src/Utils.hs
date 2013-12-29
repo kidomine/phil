@@ -31,14 +31,16 @@ data DocType = Todo | Event | Note | Goal | Flashcard
 data DocLabel = TextLabel | TypeLabel | Priority | Tags | Created
                 | DueBy | Question | Answer | Count | ItemId | QuestionId
                 | TestCountLabel | ScoreLabel | StartDate | EndDate | GoalId
-                | Done | Updated
+                | Done | Updated | QuestionImageFilename
+                | AnswerImageFilename
 data DatabaseName = ProdDB | TestDB
 
 sharedPipe = runIOE $ connect (host "127.0.0.1")
 run p dbName act = access p master (databaseNameToText dbName) act
 reservedWords = ["created", "tags", 
                  "today", "yesterday", "tomorrow", "by",
-                 "with", "done"] 
+                 "with", "done",
+                 "qi", "ai"] 
 beginningOfTime = UTCTime (fromGregorian 2014 1 1) 
     (timeOfDayToTime $ TimeOfDay 0 0 0)
 
@@ -176,52 +178,48 @@ readDate string =
       (timeOfDayToTime $ TimeOfDay 0 0 0)
 
 databaseNameToText :: DatabaseName -> Text
-databaseNameToText dbName = case dbName of
-  ProdDB -> pack "db"
-  TestDB -> pack "testDB"
+databaseNameToText ProdDB = pack "db"
+databaseNameToText TestDB = pack "testDB"
 
 labelStr :: DocLabel -> Text
-labelStr field = case field of
-  Tags -> pack "tags"
-  TextLabel -> pack "text"
-  TypeLabel -> pack "type"
-  Priority -> pack "priority"
-  Created -> pack "created"
-  DueBy -> pack "dueBy"
-  Question -> pack "question"
-  Answer -> pack "answer"
-  Count -> pack "count"
-  ScoreLabel -> pack "score"
-  ItemId -> pack "_id"
-  QuestionId -> pack "questionId"
-  GoalId -> pack "goalId"
-  TestCountLabel -> pack "testCount"
-  StartDate -> pack "startDate"
-  EndDate -> pack "endDate"
-  Done -> pack "done"
-  Updated -> pack "updated"
+labelStr Tags = pack "tags"
+labelStr TextLabel = pack "text"
+labelStr TypeLabel = pack "type"
+labelStr Priority = pack "priority"
+labelStr Created = pack "created"
+labelStr DueBy = pack "dueBy"
+labelStr Question = pack "question"
+labelStr Answer = pack "answer"
+labelStr Count = pack "count"
+labelStr ScoreLabel = pack "score"
+labelStr ItemId = pack "_id"
+labelStr QuestionId = pack "questionId"
+labelStr GoalId = pack "goalId"
+labelStr TestCountLabel = pack "testCount"
+labelStr StartDate = pack "startDate"
+labelStr EndDate = pack "endDate"
+labelStr Done = pack "pack"
+labelStr Updated = pack "updated"
+labelStr QuestionImageFilename = pack "questionImageFilename"
+labelStr AnswerImageFilename = pack "answerImageFilename"
 
 getDocType :: String -> DocType
-getDocType docType = case docType of
-  "todo" -> Todo
-  "todos" -> Todo
-  "rem" -> Reminder
-  "note" -> Note
-  "notes" -> Note
-  "goals" -> Goal
-  "goal" -> Goal
-  "fc" -> Flashcard
-  "event" -> Event
+getDocType "todo" = Todo
+getDocType "todos" = Todo
+getDocType "note" = Note
+getDocType "notes" = Note
+getDocType "goals" = Goal
+getDocType "goal" = Goal
+getDocType "fc" = Flashcard
+getDocType "event" = Event
 
 docTypeToText :: DocType -> Text
-docTypeToText docType = case docType of
-  Todo -> pack "todo"
-  Note -> pack "note"
-  Event -> pack "event"
-  Flashcard -> pack "fc"
-  Reminder -> pack "rem"
-  Goal -> pack "goal"
-  FlashcardScore -> pack "score"
-  TestCount -> pack "testCount"
-  GoalScore -> pack "goalScore"
-  LastGet -> pack "lastGet"
+docTypeToText Todo = pack "todo"
+docTypeToText Note = pack "note"
+docTypeToText Event = pack "event"
+docTypeToText Flashcard = pack "fc"
+docTypeToText TestCount = pack "testCount"
+docTypeToText Goal = pack "goal"
+docTypeToText FlashcardScore = pack "score"
+docTypeToText GoalScore = pack "goalScore"
+docTypeToText LastGet = pack "lestGet"

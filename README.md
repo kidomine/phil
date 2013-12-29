@@ -57,12 +57,12 @@ todo p3 school Read the research papers
 
 ### complete
 <pre>
-done 11 (after searching for todo's. Delete the 11th item)
+done 11 (after searching for todo's. Hide the 11th item and show it when I run `g done`)
 </pre>
 
 ### search
 <pre>
-g todo (returns a list of 1 - mytodo here); d 3
+g todo (returns a list of 1 - mytodo here)
 g todo done between one week ago and now
 g todo read
 g todo stay-current-on
@@ -106,9 +106,17 @@ g note haha (searches by tag)
 
 ### Reminders
 <pre>
-remind 3d todo 4
-remind 4d Thank stephen
-remind daily Take vitamins
+todo daily Take vitamins
+event weekly on Monday and Wednesday 3:00 remind 30m Crypto
+event yearly 3/20 remind 1w Maddy's birthday
+todo monthly on day 23 Change contacts
+</pre>
+
+### Get reminders
+Includes the todo's due by today
+and events happening today
+<pre>
+
 </pre>
 
 ### Flashcards
@@ -259,7 +267,7 @@ I use this bash alias to build and test: `alias cab='cabal configure --enable-te
 
 Start the database with this:
 <pre>
-mongod --dbpath mongoFiles --setParameter textSearchEnabled=true
+cd ~/phil; mongod --dbpath mongoFiles --setParameter textSearchEnabled=true
 Make sure the mongoFiles folder is backed up
 A log of all text input to the program is
 located at ~/Desktop/Dropbox/log.txt.

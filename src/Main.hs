@@ -114,7 +114,7 @@ exec inputState (fn:args) =
               Nothing -> (-1 :: Int32)
               Just c -> c
         docs <- getFlashcards ProdDB args
-        testLoop inputState docs args testCount True
+        testLoop ProdDB inputState docs args testCount True
     "g" -> get ProdDB args
     "d" -> do deleteItem ProdDB (read (head args) :: Int)
               runLastGet ProdDB
@@ -138,9 +138,27 @@ goalLoop inputState docs =
           goalLoop inputState ds
     [] -> getGoalScores ProdDB
 
+showImage :: DatabaseName -> ObjectId -> DocLabel -> Document -> IO ()
+showImage dbName questionId label doc = do
+  pipe <- sharedPipe
+  let query = select [(labelStr ItemId) =: questionId, 
+        (labelStr label) =: ["$exists" =: True]] (docTypeToText Flashcard)
+  mDoc <- run pipe dbName $ findOne query
+  case mDoc of 
+    Right doc -> case doc of 
+      Nothing -> return ()
+      Just d -> do 
+        let String filenameStr = valueAt (labelStr label) d
+            filename = unpack filenameStr
+        exitSuccess <- system $ 
+          "open /Users/rose/Desktop/flashcards/" ++ filename ++ ".png"
+        return ()
+    Left failure -> do putStrLn $ show failure
+
 -- | Recursive. For each question, print it, and get a y/n response
-testLoop :: InputState -> [Document] -> [String] -> Int32 -> Bool -> IO [String]
-testLoop inputState docs tags testCount isQuestion =
+testLoop :: DatabaseName -> InputState -> [Document] -> [String] -> Int32 -> 
+  Bool -> IO [String]
+testLoop dbName inputState docs tags testCount isQuestion =
   case docs of
   doc:ds ->
     let ObjId questionId = valueAt (labelStr ItemId) doc
@@ -148,35 +166,38 @@ testLoop inputState docs tags testCount isQuestion =
     True -> do
       putStrLn "Question\n-----------"
       let String question = valueAt (labelStr Question) doc
+      putStrLn $ "Question Id is " ++ (show questionId)
+      showImage dbName questionId QuestionImageFilename doc
       minput <- queryInput inputState (getInputLine $ (unpack question) ++ 
         "\n\n")
-      testLoop inputState docs tags testCount False
+      testLoop dbName inputState docs tags testCount False
     False -> do
       putStrLn "Answer\n-----------"
       let String answer = valueAt (labelStr Answer) doc
+      showImage dbName questionId AnswerImageFilename doc
       minput <- queryInput inputState (getInputLine $ (unpack answer) ++ "\n\n")
       case minput of
-          Just "" -> answeredQuestionCorrectly inputState ds tags
+          Just "" -> answeredQuestionCorrectly dbName inputState ds tags
               testCount questionId
-          Just "y" -> answeredQuestionCorrectly inputState ds tags
+          Just "y" -> answeredQuestionCorrectly dbName inputState ds tags
               testCount questionId
-          Just "n" -> answeredQuestionIncorrectly inputState ds
+          Just "n" -> answeredQuestionIncorrectly dbName inputState ds
               tags testCount questionId
   [] -> showFlashcardScore ProdDB tags testCount
                         
-answeredQuestionCorrectly :: InputState -> [Document] -> [String] -> Int32 -> 
+answeredQuestionCorrectly :: DatabaseName -> InputState -> [Document] -> [String] -> Int32 -> 
   ObjectId -> IO [String]
-answeredQuestionCorrectly inputState docs tags testCount questionId = 
+answeredQuestionCorrectly dbName inputState docs tags testCount questionId = 
   do putStrLn "\n\n"
      addFlashcardScore ProdDB tags testCount questionId (1 :: Int32)
-     testLoop inputState docs tags testCount True
+     testLoop dbName inputState docs tags testCount True
 
-answeredQuestionIncorrectly :: InputState -> [Document] -> [String] -> Int32 -> 
+answeredQuestionIncorrectly :: DatabaseName -> InputState -> [Document] -> [String] -> Int32 -> 
   ObjectId -> IO [String]
-answeredQuestionIncorrectly inputState docs tags testCount questionId =
+answeredQuestionIncorrectly dbName inputState docs tags testCount questionId =
   do putStrLn "\n\n"
      addFlashcardScore ProdDB tags testCount questionId (0 :: Int32)
-     testLoop inputState docs tags testCount True
+     testLoop dbName inputState docs tags testCount True
 
 -- | Prints help message
 help :: [String]
