@@ -170,18 +170,21 @@ get dbName arguments = do
         "done":tailArgs -> ["todo"] ++ ["done"] ++ tailArgs
         a -> a
   case args of
-    docTypeArg:tailArgs -> case tailArgs of 
-      "tags":[] -> do
-        recordGet dbName (unwords args)
-        getTags dbName (getDocType docTypeArg)
-      _ -> do
-        recordGet dbName (unwords args)
-        docs <- getDocs dbName args
-        case docs of 
-          [] -> return []
-          _ -> do
-            currentTime <- getCurrentTime
-            return $ getFormattedDocs (getDocType docTypeArg) currentTime docs args []
+    docTypeArg:tailArgs -> case docTypeArg of
+      "types" -> return ["todo", "note", "fc", "goal", "event"]
+      _ -> case tailArgs of 
+        "tags":[] -> do
+          recordGet dbName (unwords args)
+          getTags dbName (getDocType docTypeArg)
+        _ -> do
+          recordGet dbName (unwords args)
+          docs <- getDocs dbName args
+          case docs of 
+            [] -> return []
+            _ -> do
+              currentTime <- getCurrentTime
+              return $ getFormattedDocs (getDocType docTypeArg) currentTime docs
+                args []
 
 frequencyList :: [String] -> [(String, Int)]
 frequencyList s = map (\l->(head l, length l)) . group . sort $ s

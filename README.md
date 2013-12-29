@@ -42,19 +42,16 @@ to that metadata tag
 ### Todos
 <pre>
 todo someday Learn to play guitar
-done 823
 </pre>
 
 ### Complete
 <pre>
-g todo created today
-done 11
+done 11 (after searching for todo's. Delete the 11th item)
 </pre>
-
 
 ### Create
 <pre>
-todo p3 prog 0 Read the research papers
+todo p3 school Read the research papers
 </pre>
 
 ### Search
@@ -78,11 +75,13 @@ g todo by tomorrow
 g todo 228 Pset
 </pre>
 
-### Update
-alarm todo every day at 10pm
+### Edit
+<pre>
+e 2 (The 2 is the second result of the last search)
+This lands you in vi, and you can edit any fields of the item, for any item type
+</pre>
 
 ## note
-### Create
 <pre>
 note Omgomgomgo I'm soooo excited for Winter quarter!
 </pre>
@@ -95,17 +94,8 @@ keywords to search on begin at the first capitalized word
 searches are all not case-sensitive
 
 g note 228 Bayes l2
-g note Haha (searches by content)
+g todo Haha (searches by content)
 g note haha (searches by tag)
-</pre>
-
-## list
-
-### Search
-<pre>
-g list fall asleep
-g list makes me happy
-g list things i love
 </pre>
 
 ## reminder
@@ -116,21 +106,19 @@ remind daily Take vitamins
 remind daily quote 8881
 </pre>
 
-## Search
-
-<pre>
-g reminders due tomorrow
-</pre>
-
 ## fc
-### Create
 <pre>
-fc haskell Define a monad
-fc 144 sleep What are examples of L3 attacks?
+fc <tags> <Question ending in a question mark>? <answer>
+
+fc haskell Define a monad? A structure that represents computations defined as sequences of steps
+fc 144 What are the 3 main types of error correction?
+Checksum: adds up values in packet (IP, TCP)
+Cyclic Redundancy Check (CRC) (Ethernet): Protects against any 2 bit error, any burst <= c bits long, and any odd number of errors. Can't detect all errors: 2^c chance another packet's CRC matches.
+MAC (Message Authentication Code): Not as good for error detection as CRC
+
+In that last one, I used vim to edit the flashcard.
 </pre>
 
-(This reminds me of notes I should study in an
-exponential-backoff fashion)
 ### Review
 <pre>
 review 144
@@ -143,7 +131,7 @@ review 144
 
 ### Delete
 <pre>
-d 2 (after earching for fc)
+d 2 (after searching for fc)
 </pre>
 
 ### Test
@@ -160,31 +148,8 @@ got it wrong.
 
 ## Event
 
-### Create
 <pre>
 1/1 2pm - 2:15pm home Call Marie
-</pre>
-
-### Delete
-<pre>
-d 2 (after searching for event)
-</pre>
-
-# Other operations
-
-### Modes
-<pre>
-mode (quiet|loud|silent)
-Quiet - don't show any secret notes
-Loud - show secret notes
-Silent - don't send reminders
-</pre>
-
-### Top secret
-<pre>
-This means a password will be
-requested before the information
-is released.
 </pre>
 
 ### Show options for metadata
@@ -198,61 +163,7 @@ g types
         fc
 </pre>
 
-### Saved searches
-create saved search school = tags school 221 229 144
-
-### Stats
-<pre>
-stats outstanding todo p1
-stats percent flashcards correct today
-stats days kept goal 8
-stats vector for sleep
-stats
-</pre>
-
-### vi
-<pre>
-the vi command will let me enter the text in
-vim rather than the command line. like when github
-goes into the commit message mode.
-</pre>
-
-
-### Creating dates
-<pre>
-date break ends = Jan 4
-</pre>
-
-### Updating dates
-<pre>
-date break ends = Jan 5
-> Are you sure you want to change the date break ends from Jan 4 to Jan 5?
-> yes
-</pre>
-
-
-### Deleting dates
-<pre>
-d date break ends
-</pre>
-
-### Undoing deletion
-<pre>
-undo
-undo in last 100
-> [shows a list of last 100 operations, so I'll keep a log of everything that's
-   done, and when something is selected, I'll simply do the inverse of what
-   was done and it will show up in the log]
-</pre>
-
-### Quantified Self
-<pre>
-start survey
-> How many hours of sleep did you get last night?
-</pre>
-
 ## Goal
-### Create
 <pre>
 goal remind daily Take vitamins
 goal Brush three times a day
@@ -262,21 +173,6 @@ goal Brush three times a day
 <pre>
 test goals
 When a goal is shown, type "y" if you made it, "n" otherwise.
-</pre>
-
-## Question
-<pre>
-This asks me questions every once in a while, like...
-question What are 5 things you're grateful for?
-question What do you want to do in three years?
-</pre>
-
-
-### Tags
-<pre>
-reading through tags looks at the next tag to see if it's a part of this tag
-before declaring it a new tag. E.g. south african columbae math
-breaks that up as 'south african' 'columbae' and 'math'
 </pre>
 
 ### Search
@@ -289,4 +185,60 @@ content -- they're not tags.
 <pre>
 To see the last n lines appended to the log, run
 log 15
+</pre>
+
+### Tags
+
+<pre>
+g <type> <tags>
+shows all the tags and the frequency with which they are assigned to items
+of that type. For example:
+g todo tags
+shows:
+
+12 math
+9 waiting
+6 friends
+5 read
+4 song
+4 school
+4 learn-random
+4 coding
+4 buy
+3 apartment
+3 book
+2 someday
+2 research
+2 learn
+2 daily
+2 buy-online
+2 fam
+2 whenever
+2 229
+2 221
+2 144
+1 safeway
+1 pleasure
+1 228
+
+See the tags that are assigned to items with
+g <type> with tags
+
+1 - [learn-random] - What is SEO?
+2 - [this-project] - Enable text search
+3 - [daily] - Write down 5 things I'm thankful for
+4 - [hungry] - Clean out email. Killme.
+5 - [math] - Do Project Euler problems
+6 - [228] - Read a probabilistic graphical modeling textbook
+7 - [math, book] - Read The Art and Craft of Problem Solving
+8 - [math, learn] - Deeply understand how matrix inverses work
+9 - [friends] - Plan to go to Burning Man
+10 - [apartment] - Clean room
+11 - [apartment] - Buy a tall office chair
+12 - [whenever] - Cut hair
+13 - [math, book, learn] - Read a book on convex optimization
+14 - [229] - Finish watching 229_23.mp4 on Markov Models
+15 - [whenever] - Make sure Mail On My Mac is backed up on Dropbox.
+16 - [someday] - Learn to draw a Rose
+17 - [friends] - Plan Spring Break
 </pre>
