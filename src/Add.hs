@@ -28,7 +28,6 @@ getFieldsForType docType inputWords = do
           Todo -> getFieldsForTodo [] inputWords []
           Note -> getFieldsForNote [] inputWords []
           Flashcard -> getFieldsForFlashcard [] inputWords []
-          Event -> getFieldsForEvent inputWords
           Goal -> getFieldsForGoal inputWords
   return results
 
@@ -70,15 +69,6 @@ getFieldsForNote doc inputWords tagsSoFar =
                                     [] tagsSoFar
                           | otherwise -> getFieldsForNote 
                               doc tailWords (tagsSoFar ++ [firstWord])
-
-getFieldsForEvent :: [String] -> Document
-getFieldsForEvent inputWords = 
-  case (splitDateTimeRangeTagsAndText $ unwords inputWords) of
-    Just (day, startTime, endTime, tags, text) ->
-      [(labelStr StartDate) =: (UTCTime day startTime),
-      (labelStr EndDate) =: (UTCTime day endTime),
-      (labelStr Tags) =: tags,
-      (labelStr TextLabel) =: text]
 
 getFieldsForGoal :: [String] -> Document
 getFieldsForGoal inputWords =

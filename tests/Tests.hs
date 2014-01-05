@@ -45,15 +45,7 @@ flashcardCases = TestLabel "Flashcard test cases" (TestList [
 scoreCases = TestLabel "Score test cases" (TestList [
   testIncrementTestCountOnce, testIncrementTestCountTwice])
 
-eventCases = TestLabel "Event test cases" (TestList [
-  testTimeRangesAreValid, testTimeRangesAreInvalid, testEventIsValid])
-
-
---otherCases = TestLabel "Other test cases" (TestList [
-  --testRecordLastGet])
-  
-main = runTestTT $ TestList [todoCases, noteCases, flashcardCases, scoreCases,
-                             eventCases] --, otherCases]
+main = runTestTT $ TestList [todoCases, noteCases, flashcardCases, scoreCases]
 
 -- 
 -- Validating items
@@ -317,10 +309,6 @@ testTimeRangesAreInvalid = TestCase (do
         ["5AM - 6", "4am - 12p", "4:61 - 3pm", "12:01", "4: - 3pm", "13 - 4",
           "4-5"]
   assertEqual "All these times should be invalid" False shouldBeFalse)
-
-testEventIsValid = TestCase (do
-  let shouldBeTrue = eventIsValid ["12/26", "4:30pm", "-", "7pm", "tag", "This"]
-  assertEqual "The event should be valid" True shouldBeTrue)
 
 {-
 testRecordLastGet = TestCase (do

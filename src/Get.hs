@@ -173,7 +173,7 @@ get dbName arguments = do
         a -> a
   case args of
     docTypeArg:tailArgs -> case docTypeArg of
-      "types" -> return ["todo", "note", "fc", "goal", "event"]
+      "types" -> return ["todo", "note", "fc", "goal"]
       _ -> case tailArgs of 
         "tags":[] -> do
           recordGet dbName (unwords args)
@@ -252,7 +252,6 @@ keysForDocType :: DocType -> [Label]
 keysForDocType docType = case docType of 
   Todo -> ["text"]
   Note -> ["text"]
-  Event -> ["text"]
   Flashcard -> ["question", "answer"]
 
 createTextIndex :: DatabaseName -> DocType -> Action IO ()

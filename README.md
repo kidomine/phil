@@ -7,9 +7,8 @@ It's a command line interface to manage
 - Notes
 - Flashcards
 - Goals
-- Calendar events
 
-I used to awkwardly enter these things in GUIs (Evernote, Trello, Things, StudyBlue, Reminders, FollowUpThen, iCal, etc.) and then had to (or never did) triage. This program makes it easy to enter information, and it triages it for me. It's pretty much a DSL that I choose and change as I see fit. For example,
+I used to awkwardly enter these things in GUIs (Evernote, Trello, Things, StudyBlue, etc.) and then had to (or never did) triage. This program makes it easy to enter information, and it triages it for me. It's pretty much a DSL that I choose and change as I see fit. For example,
 <pre>
 todo school 144 p2 by 1/4 Write router
 </pre>
@@ -104,25 +103,10 @@ g todo Haha (searches by content)
 g note haha (searches by tag)
 </pre>
 
-### Reminders
-<pre>
-todo daily Take vitamins
-event weekly on Monday and Wednesday 3:00 remind 30m Crypto
-event yearly 3/20 remind 1w Maddy's birthday
-todo monthly on day 23 Change contacts
-</pre>
-
-### Get reminders
-Includes the todo's due by today
-and events happening today
-<pre>
-
-</pre>
-
 ### Flashcards
 <pre>
 Format:
-fc tags Question ending in a question mark>? answer
+fc tags Question ending in a question mark? answer
 
 fc haskell Define a monad? A structure that represents computations defined as sequences of steps
 fc 144 What are the 3 main types of error correction?
@@ -160,16 +144,10 @@ Hit return if you got it right, "n" if you
 got it wrong.
 </pre>
 
-### Event
-<pre>
-1/1 2pm - 2:15pm home Call Marie
-</pre>
-
 ### Show available types
 <pre>
 g types
         todo
-        event
         note
         goal
         fc

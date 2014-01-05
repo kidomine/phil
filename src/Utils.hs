@@ -26,7 +26,7 @@ import Data.List (isInfixOf, isPrefixOf, isSuffixOf, inits, tails, stripPrefix)
 import Data.Time
 import Database.MongoDB
 
-data DocType = Todo | Event | Note | Goal | Flashcard 
+data DocType = Todo | Note | Goal | Flashcard 
                | Reminder | FlashcardScore | TestCount | GoalScore | LastGet
 data DocLabel = TextLabel | TypeLabel | Priority | Tags | Created
                 | DueBy | Question | Answer | Count | ItemId | QuestionId
@@ -212,12 +212,10 @@ getDocType "notes" = Note
 getDocType "goals" = Goal
 getDocType "goal" = Goal
 getDocType "fc" = Flashcard
-getDocType "event" = Event
 
 docTypeToText :: DocType -> Text
 docTypeToText Todo = pack "todo"
 docTypeToText Note = pack "note"
-docTypeToText Event = pack "event"
 docTypeToText Flashcard = pack "fc"
 docTypeToText TestCount = pack "testCount"
 docTypeToText Goal = pack "goal"
