@@ -34,8 +34,10 @@ edit dbName n = do
         --let String text = valueAt (labelStr TextLabel) doc
         let filename = "/Users/rose/phil/tempedit"
             sel = selection query
-            excludedLabels = ["_id", "created", "updated", "questionId", 
-                              "goalId", "count", "testCount"]
+            dates = ["startDate", "endDate", "dueBy", "done", "created", 
+                     "updated"]
+            excludedLabels = ["_id", "questionId", 
+                              "goalId", "count", "testCount"] ++ dates
             modifiableFields = exclude excludedLabels doc
             unmodifiableFields = include excludedLabels doc
         writeFile filename (docToStr modifiableFields)
@@ -68,18 +70,22 @@ docToStr doc = unlinesByFunnyChar $ zipWith (++) (map fieldToStr doc)
 -- value, and run a series of modifiers, like "$set" =: [label =: value]
 
 fieldToStr :: Field -> String
-fieldToStr f = (unpack $ label f) ++ ":" ++ (show $ value f)
+fieldToStr f = case (label f) of
+  "tags" -> (unpack $ label f) ++ ": " ++ (show $ value f)
+  _ -> let String s = value f
+       in (unpack $ label f) ++ ":\n" ++ (unpack s) ++ "\n"
 
 strToField :: String -> Field
 strToField s =
   case splitAboutSubstring s ":" of
-    Just (label, valueString) -> (pack label) =: (readValue (pack label) valueString)
+    Just (label, valueString) -> (pack label) =: (readValue (pack label) 
+      valueString)
 
 readValue :: Label -> String -> Value
 readValue label valueString = 
   case label of
     "tags" -> val (read valueString :: [String])
-    "text" -> val  (read valueString :: String)
+    "text" -> val (read ("\"" ++ valueString ++ "\"") :: String)
     "type" -> val (read valueString :: String)
     "priority" -> val (read valueString :: Int32)
     "dueBy" -> val (read valueString :: UTCTime)

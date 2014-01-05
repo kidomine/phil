@@ -129,7 +129,8 @@ isTime12 time = case splitAboutSubstring time ":" of
           | otherwise -> False
         where 
           hour = time
-  Just (hour, minute) -> isDigitTime isHourInt hour && isDigitTime isMinuteInt minute
+  Just (hour, minute) -> isDigitTime isHourInt hour && isDigitTime isMinuteInt 
+    minute
 
 isTime :: String -> Bool
 isTime time 
