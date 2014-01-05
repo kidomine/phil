@@ -166,7 +166,6 @@ testLoop dbName inputState docs tags testCount isQuestion =
     True -> do
       putStrLn "Question\n-----------"
       let String question = valueAt (labelStr Question) doc
-      putStrLn $ "Question Id is " ++ (show questionId)
       showImage dbName questionId QuestionImageFilename doc
       minput <- queryInput inputState (getInputLine $ (unpack question) ++ 
         "\n\n")
