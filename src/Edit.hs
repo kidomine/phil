@@ -73,24 +73,27 @@ fieldToStr :: Field -> String
 fieldToStr f = case (label f) of
   "tags" -> (unpack $ label f) ++ ": " ++ (show $ value f)
   _ -> let String s = value f
-       in (unpack $ label f) ++ ":\n" ++ (unpack s) ++ "\n"
+       in (unpack $ label f) ++ ":\n" ++ (unpack s)
 
 strToField :: String -> Field
 strToField s =
   case splitAboutSubstring s ":" of
     Just (label, valueString) -> (pack label) =: (readValue (pack label) 
-      valueString)
+      (init valueString))
+      -- The init strips the final newline
 
+-- TODO if you get no parse errors, look here. You may need to add in some extra
+-- quotes
 readValue :: Label -> String -> Value
 readValue label valueString = 
   case label of
     "tags" -> val (read valueString :: [String])
     "text" -> val (read ("\"" ++ valueString ++ "\"") :: String)
-    "type" -> val (read valueString :: String)
+    "type" -> val (read ("\"" ++ valueString ++ "\"") :: String)
     "priority" -> val (read valueString :: Int32)
     "dueBy" -> val (read valueString :: UTCTime)
-    "question" -> val (read valueString :: String)
-    "answer" -> val (read valueString :: String)
+    "question" -> val (read ("\"" ++ valueString ++ "\"") :: String)
+    "answer" -> val (read ("\"" ++ valueString ++ "\"") :: String)
     "count" -> val (read valueString :: Int32)
     "score" -> val (read valueString :: Int32)
     "testCount" -> val (read valueString :: Int)
@@ -101,6 +104,7 @@ readValue label valueString =
     "questionImageFilename" -> val (read valueString :: String)
     x -> error $ "Hey Rose, the bad value is " ++ (show x)
 
+-- The init is to strip the funny character. Tee hee! sex joke.
 strToDoc :: String -> Document
 strToDoc s = map strToField (init (linesByFunnyChar s))
 
