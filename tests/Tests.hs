@@ -13,6 +13,7 @@ import Test.QuickCheck
 import Database.MongoDB
 import Data.Int
 import Data.Time.Format.Human
+import Data.Text (pack)
 
 import Utils
 import Validate
@@ -40,7 +41,8 @@ noteCases = TestLabel "Note test cases" (TestList [
   testNoteCreatedTime, testGetNoteTags])
 
 flashcardCases = TestLabel "Flashcard test cases" (TestList [
-  testFlashcardIsValid1, testFlashcardIsValid2, testReview])
+  testFlashcardIsValid1, testFlashcardIsValid2, testReview, 
+  testReverseFlashcards])
 
 scoreCases = TestLabel "Score test cases" (TestList [
   testIncrementTestCountOnce, testIncrementTestCountTwice])
@@ -280,6 +282,17 @@ testReview = TestCase (do
   assertEqual "The flashcards should be separated by two newlines"
     ("What is the maximum?\n    20\n\nWhat is the minimum?\n    -3"
       ++ "\n\nWhat is the average?\n    1\n\n") result)
+
+testReverseFlashcards = TestCase (do
+  deleteAll Flashcard
+  add TestDB Flashcard ["229", "lect1", "What", "is", "the", "maximum?", "20"]
+  add TestDB Flashcard ["229", "lect1", "What", "is", "the", "minimum?", "-3"]
+  add TestDB Flashcard ["229", "lect2", "What", "is", "the", "average?", "1"]
+  pipe <- sharedPipe
+  docs <- getFlashcards TestDB ["229", "reverse"]
+  assertEqual "The order of the retrieved flashcards should be reversed"
+    (valueAt (labelStr Question) (head docs))
+      (String (pack "What is the average")))
 
 testIncrementTestCountOnce = TestCase (do
   deleteAll TestCount 

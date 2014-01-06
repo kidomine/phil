@@ -40,7 +40,8 @@ run p dbName act = access p master (databaseNameToText dbName) act
 reservedWords = ["created", "tags", 
                  "today", "yesterday", "tomorrow", "by",
                  "with", "done",
-                 "qi", "ai"] 
+                 "qi", "ai", 
+                 "reverse"] 
 beginningOfTime = UTCTime (fromGregorian 2014 1 1) 
     (timeOfDayToTime $ TimeOfDay 0 0 0)
 

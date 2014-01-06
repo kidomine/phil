@@ -49,7 +49,6 @@ showTagsList listSoFar tagsRemaining =
 displayTag :: Document -> String
 displayTag doc = 
   case (look "tags" doc) of
-    Left _ -> ""
     Right tags -> let Array ts = tags
                       tgs = [unpack tag | String tag <- ts]
                   in showTagsList "" tgs
@@ -202,7 +201,8 @@ getTags dbName docType = do
   cursor <- run pipe dbName $ find query
   mDocs <- run pipe dbName $ rest (case cursor of Right c -> c)
   case mDocs of 
-    Left _ -> return []
+    Left failure -> do putStrLn $ show failure
+                       return []
     Right docs ->
       -- mconcat [Just ["hey", "tag"], Just ["yo"], Nothing]
       -- returns Just ["hey","tag","yo"]
@@ -269,19 +269,27 @@ getGoals dbName = do
   cursor <- run pipe dbName $ find selection
   mDocs <- run pipe dbName $ rest (case cursor of Right c -> c)
   case mDocs of 
-    Left _ -> return []
+    Left failure -> do putStrLn $ show failure
+                       return []
     Right docs -> return docs
+
+remove' :: Eq a => a -> [a] -> [a]
+remove' element list = filter (\e -> e/=element) list
 
 getFlashcards :: DatabaseName -> [String] -> IO [Document]
 getFlashcards dbName args = do
   pipe <- liftIO sharedPipe
-  let selection = select [(labelStr Tags) =: ["$all" =: args]]
-        (docTypeToText Flashcard)
+  let argsSansReverse = remove' "reverse" args
+      selector = [(labelStr Tags) =: ["$all" =: argsSansReverse]]
+      selection = select selector (docTypeToText Flashcard)
   cursor <- run pipe dbName $ find selection
   mdocs <- run pipe dbName $ rest (case cursor of Right c -> c)
   case mdocs of 
-    Left _ -> return []
-    Right docs -> return docs
+    Left failure -> do putStrLn $ show failure
+                       return []
+    Right docs -> case (length args - (length argsSansReverse)) of
+      0 -> return docs
+      1 -> return $ reverse docs
                             
 -- | Recursive function that builds up the selector based on args
 -- When there are no args left to examine, we check if we've

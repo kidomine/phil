@@ -106,10 +106,11 @@ g note haha (searches by tag)
 ### Flashcards
 <pre>
 Format:
-fc tags Question ending in a question mark? answer
+fc tags ai AnswerImageFilename qi QuestionImageFilename Question ending in a question mark? answer
 
 fc haskell Define a monad? A structure that represents computations defined as sequences of steps
 fc 144 What are the 3 main types of error correction?
+fc 229 ai matrix-derivatives What are the 3 main types of error correction?
 Checksum: adds up values in packet (IP, TCP)
 Cyclic Redundancy Check (CRC) (Ethernet): Protects against any 2 bit error, any burst <= c bits long, and any odd number of errors. Can't detect all errors: 2^c chance another packet's CRC matches.
 MAC (Message Authentication Code): Not as good for error detection as CRC
@@ -135,8 +136,8 @@ d 2 (after searching for fc)
 ### Test
 <pre>
 test 144
-test 144 created yesterday
-test 144 hardest first
+test 144 reverse
+test 144 hardest first (not implemented yet)
 > What should the buffer size be?
 Hit return to see the answer
 > B * RTT
