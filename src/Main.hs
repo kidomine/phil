@@ -118,7 +118,7 @@ exec inputState (fn:args) =
     "g" -> get ProdDB args
     "d" -> do deleteItem ProdDB (read (head args) :: Int)
               runLastGet ProdDB
-    _ -> return ["I don't recognize that command"]
+    tag -> add ProdDB Note (tag:args)
 
 -- | Recursive. For each goal, print it, and get a y/n response
 goalLoop :: InputState -> [Document] -> IO [String]

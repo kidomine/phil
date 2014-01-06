@@ -87,8 +87,11 @@ This lands you in vi, and you can edit any fields of the item, for any item type
 </pre>
 
 ### Notes
+If no word "note" is supplied, and only tags are supplied, phil creates a note
+with those tags
 <pre>
 note Omgomgomgo I'm soooo excited for Winter quarter!
+quote Great men make history? Nah, history makes great men.
 </pre>
 
 ### search
