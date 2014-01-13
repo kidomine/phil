@@ -104,10 +104,11 @@ exec inputState (fn:args) =
               case mdoc of
                 Left failure -> do putStrLn $ show failure
                                    return []
-                Just mDoc -> case mDoc of
-                  Nothing -> putStrLn "I couldn't find the document that you want to edit."
+                Right mDoc -> case mDoc of
+                  Nothing -> do putStrLn "I couldn't find the document that you want to edit."
+                                return []
                   Just doc -> do lastGet <- getLastGet ProdDB 
-                                 let docType = (docTypeToText $ getDocType $ head (words lastGet))
+                                 let docType = getDocType $ head (words lastGet)
                                  edit ProdDB doc docType
                                  runLastGet ProdDB
     "vi" -> runVim
@@ -122,7 +123,7 @@ exec inputState (fn:args) =
               Nothing -> (-1 :: Int32)
               Just c -> c
         docs <- getFlashcards ProdDB args
-        testLoop ProdDB inputState docs args testCount True
+        testLoop ProdDB inputState docs args testCount True True
     "g" -> get ProdDB args
     "d" -> do deleteItem ProdDB (read (head args) :: Int)
               runLastGet ProdDB
@@ -164,31 +165,32 @@ showImage dbName questionId label doc = do
 
 -- | Recursive. For each question, print it, and get a y/n response
 testLoop :: DatabaseName -> InputState -> [Document] -> [String] -> Int32 -> 
-  Bool -> IO [String]
-testLoop dbName inputState docs tags testCount isQuestion =
+  Bool -> Bool -> IO [String]
+testLoop dbName inputState docs tags testCount isQuestion shouldPrintAnswer =
   case docs of
   doc:ds ->
     let ObjId questionId = valueAt (labelStr ItemId) doc
     in case isQuestion of
     True -> do
-      putStrLn "----------------------"
+      putStrLn "--------------------------------------------------------------------------------\n"
       let String question = valueAt (labelStr Question) doc
       showImage dbName questionId QuestionImageFilename doc
       minput <- queryInput inputState (getInputLine $ (unpack question) ++ 
         "\n\n")
-      testLoop dbName inputState docs tags testCount False
+      testLoop dbName inputState docs tags testCount False True
     False -> do
       putStrLn ""
       let String answer = valueAt (labelStr Answer) doc
       showImage dbName questionId AnswerImageFilename doc
-      minput <- queryInput inputState (getInputLine $ (unpack answer) ++ "\n\n")
+      let ans = if shouldPrintAnswer then ((unpack answer)) else ""
+      minput <- queryInput inputState (getInputLine ans)
       case minput of
           Just "" -> answeredQuestionCorrectly dbName inputState ds tags
               testCount questionId
           Just "n" -> answeredQuestionIncorrectly dbName inputState ds
               tags testCount questionId
           Just "e" -> do edit ProdDB doc Flashcard
-                         testLoop dbName inputState docs tags testCount False
+                         testLoop dbName inputState docs tags testCount False False
   [] -> showFlashcardScore ProdDB tags testCount
                         
 answeredQuestionCorrectly :: DatabaseName -> InputState -> [Document] -> [String] -> Int32 -> 
@@ -196,14 +198,14 @@ answeredQuestionCorrectly :: DatabaseName -> InputState -> [Document] -> [String
 answeredQuestionCorrectly dbName inputState docs tags testCount questionId = 
   do putStrLn "\n\n"
      addFlashcardScore ProdDB tags testCount questionId (1 :: Int32)
-     testLoop dbName inputState docs tags testCount True
+     testLoop dbName inputState docs tags testCount True True
 
 answeredQuestionIncorrectly :: DatabaseName -> InputState -> [Document] -> [String] -> Int32 -> 
   ObjectId -> IO [String]
 answeredQuestionIncorrectly dbName inputState docs tags testCount questionId =
   do putStrLn "\n\n"
      addFlashcardScore ProdDB tags testCount questionId (0 :: Int32)
-     testLoop dbName inputState docs tags testCount True
+     testLoop dbName inputState docs tags testCount True True
 
 -- | Prints help message
 help :: [String]
