@@ -177,15 +177,15 @@ get dbName arguments = do
         "tags":[] -> do
           recordGet dbName (unwords args)
           getTags dbName (getDocType docTypeArg)
-        _ -> do
-          recordGet dbName (unwords args)
-          docs <- getDocs dbName args
-          case docs of 
-            [] -> return []
-            _ -> do
-              currentTime <- getCurrentTime
-              return $ getFormattedDocs (getDocType docTypeArg) currentTime docs
-                args []
+        _ -> do let argus = if tailArgs == [] then "note":[docTypeArg] else args
+                recordGet dbName (unwords argus)
+                docs <- getDocs dbName argus
+                case docs of
+                  [] -> return []
+                  _ -> do
+                    currentTime <- getCurrentTime
+                    return $ getFormattedDocs (getDocType (head argus)) currentTime docs
+                      argus []
 
 frequencyList :: [String] -> [(String, Int)]
 frequencyList s = map (\l->(head l, length l)) . group . sort $ s
