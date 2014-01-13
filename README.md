@@ -100,10 +100,13 @@ quote Great men make history? Nah, history makes great men.
 tags are lowercase (or numbers)
 keywords to search on begin at the first capitalized word
 searches are all not case-sensitive
+when the note you want to get just has one tag, you don't
+need to use "g note tag". Just use 'g tag'.
 
-g note 228 Bayes l2
+g  228 Bayes l2
 g todo Haha (searches by content)
 g note haha (searches by tag)
+g day
 </pre>
 
 ### Flashcards
@@ -146,6 +149,10 @@ Hit return to see the answer
 > B * RTT
 Hit return if you got it right, "n" if you
 got it wrong.
+
+You can edit a card that you are currently
+testing by entering "e" when you see the
+answer and usually hit return or "n".
 </pre>
 
 ### Show available types
