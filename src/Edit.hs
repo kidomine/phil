@@ -100,8 +100,8 @@ readValue label valueString =
     "startDate" -> val (read valueString :: UTCTime)
     "endDate" -> val (read valueString :: UTCTime)
     "done" -> val (read valueString :: UTCTime)
-    "answerImageFilename" -> val (read valueString :: String)
-    "questionImageFilename" -> val (read valueString :: String)
+    "answerImageFilename" -> val (read ("\"" ++ valueString ++ "\"") :: String)
+    "questionImageFilename" -> val (read ("\"" ++ valueString ++ "\"") :: String)
     x -> error $ "Hey Rose, the bad value is " ++ (show x)
 
 -- The init is to strip the funny character. Tee hee! sex joke.

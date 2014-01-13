@@ -250,6 +250,7 @@ I use this bash alias to build and test: `alias cab='cabal configure --enable-te
 Start the database with this:
 <pre>
 cd ~/phil; mongod --dbpath mongoFiles --setParameter textSearchEnabled=true
+(My alias for that is phildb)
 Make sure the mongoFiles folder is backed up
 A log of all text input to the program is
 located at ~/Desktop/Dropbox/log.txt.
