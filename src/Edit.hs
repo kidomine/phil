@@ -19,35 +19,26 @@ instance Val Value where
   val   = id
   cast' = Just
 
-edit :: DatabaseName -> Int -> IO [String]
-edit dbName n = do
-  pipe <- sharedPipe
-  query <- getLastQueryForOne dbName n
-  mdoc <- run pipe dbName $ findOne query
-  currentTime <- getCurrentTime
-  case mdoc of
-    Left failure -> do putStrLn $ show failure
-                       return []
-    Right mDoc -> case mDoc of
-      Nothing -> return []
-      Just doc -> do
-        --let String text = valueAt (labelStr TextLabel) doc
-        let filename = "/Users/rose/phil/tempedit"
-            sel = selection query
-            dates = ["startDate", "endDate", "dueBy", "done", "created", 
-                     "updated"]
-            excludedLabels = ["_id", "questionId", 
-                              "goalId", "count", "testCount"] ++ dates
-            modifiableFields = exclude excludedLabels doc
-            unmodifiableFields = include excludedLabels doc
-        writeFile filename (docToStr modifiableFields)
-        exitSuccess <- system $ "vi " ++ filename
-        modifiedString <- readFile filename
-        putStrLn modifiedString
-        let modifiedDoc = merge unmodifiableFields (strToDoc modifiedString)
-        mapM_ (updateField dbName sel) modifiedDoc
-        exitSuccess <- system $ "rm " ++ filename
-        return []
+edit :: DatabaseName -> Document -> DocType -> IO [String]
+edit dbName doc docType = do
+    --let String text = valueAt (labelStr TextLabel) doc
+    let filename = "/Users/rose/phil/tempedit"
+        dates = ["startDate", "endDate", "dueBy", "done", "created", 
+                 "updated"]
+        excludedLabels = ["_id", "questionId", 
+                          "goalId", "count", "testCount"] ++ dates
+        modifiableFields = exclude excludedLabels doc
+        unmodifiableFields = include excludedLabels doc
+    writeFile filename (docToStr modifiableFields)
+    exitSuccess <- system $ "vi " ++ filename
+    modifiedString <- readFile filename
+    putStrLn modifiedString
+    let modifiedDoc = merge unmodifiableFields (strToDoc modifiedString)
+    let selr = select [(labelStr ItemId) =: (valueAt (labelStr ItemId) doc)] 
+          (docTypeToText docType)
+    mapM_ (updateField dbName selr) modifiedDoc
+    exitSuccess <- system $ "rm " ++ filename
+    return []
 
 updateField :: DatabaseName -> Selection -> Field -> IO ()
 updateField dbName sel f = do

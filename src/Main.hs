@@ -98,10 +98,18 @@ exec inputState (fn:args) =
     "log" -> showLog (read (head args) :: Int)
     "review" -> do result <- review ProdDB args
                    return [result]
-    "e" -> do edit ProdDB (read (head args) :: Int)
-              runLastGet ProdDB
-    "edit" -> do edit ProdDB (read (head args) :: Int)
-                 runLastGet ProdDB
+    "e" -> do pipe <- sharedPipe  
+              query <- getLastQueryForOne ProdDB (read (head args) :: Int)
+              mdoc <- run pipe ProdDB $ findOne query
+              case mdoc of
+                Left failure -> do putStrLn $ show failure
+                                   return []
+                Just mDoc -> case mDoc of
+                  Nothing -> putStrLn "I couldn't find the document that you want to edit."
+                  Just doc -> do lastGet <- getLastGet ProdDB 
+                                 let docType = (docTypeToText $ getDocType $ head (words lastGet))
+                                 edit ProdDB doc docType
+                                 runLastGet ProdDB
     "vi" -> runVim
     "test" -> case (head args) of
       "goals" -> do
@@ -163,24 +171,24 @@ testLoop dbName inputState docs tags testCount isQuestion =
     let ObjId questionId = valueAt (labelStr ItemId) doc
     in case isQuestion of
     True -> do
-      putStrLn "Question\n-----------"
+      putStrLn "----------------------"
       let String question = valueAt (labelStr Question) doc
       showImage dbName questionId QuestionImageFilename doc
       minput <- queryInput inputState (getInputLine $ (unpack question) ++ 
         "\n\n")
       testLoop dbName inputState docs tags testCount False
     False -> do
-      putStrLn "Answer\n-----------"
+      putStrLn ""
       let String answer = valueAt (labelStr Answer) doc
       showImage dbName questionId AnswerImageFilename doc
       minput <- queryInput inputState (getInputLine $ (unpack answer) ++ "\n\n")
       case minput of
           Just "" -> answeredQuestionCorrectly dbName inputState ds tags
               testCount questionId
-          Just "y" -> answeredQuestionCorrectly dbName inputState ds tags
-              testCount questionId
           Just "n" -> answeredQuestionIncorrectly dbName inputState ds
               tags testCount questionId
+          Just "e" -> do edit ProdDB doc Flashcard
+                         testLoop dbName inputState docs tags testCount False
   [] -> showFlashcardScore ProdDB tags testCount
                         
 answeredQuestionCorrectly :: DatabaseName -> InputState -> [Document] -> [String] -> Int32 -> 
