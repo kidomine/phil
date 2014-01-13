@@ -70,8 +70,8 @@ strToField :: String -> Field
 strToField s =
   case splitAboutSubstring s ":" of
     Just (label, valueString) -> (pack label) =: (readValue (pack label) 
-      (init valueString))
-      -- The init strips the final newline
+      (init (tail valueString)))
+      -- The init and strips the beginning and final newlines
 
 -- TODO if you get no parse errors, look here. You may need to add in some extra
 -- quotes
