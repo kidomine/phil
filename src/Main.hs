@@ -182,7 +182,7 @@ testLoop dbName inputState docs tags testCount isQuestion shouldPrintAnswer =
       putStrLn ""
       let String answer = valueAt (labelStr Answer) doc
       showImage dbName questionId AnswerImageFilename doc
-      let ans = if shouldPrintAnswer then ((unpack answer)) else ""
+      let ans = if shouldPrintAnswer then ((unpack answer) ++ "\n\n") else ""
       minput <- queryInput inputState (getInputLine ans)
       case minput of
           Just "" -> answeredQuestionCorrectly dbName inputState ds tags
@@ -196,15 +196,13 @@ testLoop dbName inputState docs tags testCount isQuestion shouldPrintAnswer =
 answeredQuestionCorrectly :: DatabaseName -> InputState -> [Document] -> [String] -> Int32 -> 
   ObjectId -> IO [String]
 answeredQuestionCorrectly dbName inputState docs tags testCount questionId = 
-  do putStrLn "\n\n"
-     addFlashcardScore ProdDB tags testCount questionId (1 :: Int32)
+  do addFlashcardScore ProdDB tags testCount questionId (1 :: Int32)
      testLoop dbName inputState docs tags testCount True True
 
 answeredQuestionIncorrectly :: DatabaseName -> InputState -> [Document] -> [String] -> Int32 -> 
   ObjectId -> IO [String]
 answeredQuestionIncorrectly dbName inputState docs tags testCount questionId =
-  do putStrLn "\n\n"
-     addFlashcardScore ProdDB tags testCount questionId (0 :: Int32)
+  do addFlashcardScore ProdDB tags testCount questionId (0 :: Int32)
      testLoop dbName inputState docs tags testCount True True
 
 -- | Prints help message
