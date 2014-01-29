@@ -90,7 +90,10 @@ exec inputState (fn:args) =
     "quit" -> exitSuccess
     "help" -> return (help)
     "todo" -> add ProdDB Todo args
+    "t" -> add ProdDB Todo args
     "note" -> add ProdDB Note args
+    "n" -> add ProdDB Note args
+    "f" -> add ProdDB Flashcard args
     "fc" -> add ProdDB Flashcard args
     "goal" -> add ProdDB Goal args
     "done" -> do completeTodo ProdDB (read (head args) :: Int)
