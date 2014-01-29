@@ -1,5 +1,7 @@
-##A command line interface to manage notes, flashcards, and todos.
+#I use this daily.
+##It's a command line interface to manage notes, flashcards, and todos.
 ### Written in Haskell.
+
 
 I've used this program daily (often hourly!) since I began writing it December of 2013.
 
