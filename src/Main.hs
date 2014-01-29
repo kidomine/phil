@@ -13,7 +13,6 @@ import Database.MongoDB
 import System.Exit (exitSuccess)
 import System.Console.Haskeline
 import System.Console.Haskeline.IO
-import Control.Concurrent
 import Control.Exception
 import Data.Int
 import Data.Text (unpack)
@@ -32,7 +31,7 @@ import Edit
 main :: IO ()
 main = bracketOnError (initializeInput defaultSettings)
          cancelInput -- This will only be called if an exception such
-                         -- as a SigINT is received.
+                     -- as a SigINT is received.
          (\inputState -> loop inputState >> closeInput inputState)
   where
     loop :: InputState -> IO ()
