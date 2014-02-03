@@ -187,12 +187,12 @@ testLoop dbName inputState docs tags testCount isQuestion shouldPrintAnswer =
       let ans = if shouldPrintAnswer then ((unpack answer) ++ "\n\n") else ""
       minput <- queryInput inputState (getInputLine ans)
       case minput of
-          Just "" -> answeredQuestionCorrectly dbName inputState ds tags
-              testCount questionId
           Just "n" -> answeredQuestionIncorrectly dbName inputState ds
               tags testCount questionId
           Just "e" -> do edit ProdDB doc Flashcard
                          testLoop dbName inputState docs tags testCount False False
+          Just _ -> answeredQuestionCorrectly dbName inputState ds tags
+              testCount questionId
   [] -> showFlashcardScore ProdDB tags testCount
                         
 answeredQuestionCorrectly :: DatabaseName -> InputState -> [Document] -> [String] -> Int32 -> 

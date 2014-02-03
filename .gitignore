@@ -8,6 +8,8 @@ cabal-dev
 .virthualenv
 temp*
 mongoFiles/
+.DS_Store
+src/Main
 
 
 repl
