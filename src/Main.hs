@@ -125,7 +125,7 @@ exec inputState (fn:args) =
               Nothing -> (-1 :: Int32)
               Just c -> c
         docs <- getFlashcards ProdDB args
-        testLoop ProdDB inputState docs args testCount True True
+        testLoop ProdDB inputState docs args testCount True True 1
     "g" -> get ProdDB args
     "d" -> do deleteItem ProdDB (read (head args) :: Int)
               runLastGet ProdDB
@@ -167,19 +167,19 @@ showImage dbName questionId label doc = do
 
 -- | Recursive. For each question, print it, and get a y/n response
 testLoop :: DatabaseName -> InputState -> [Document] -> [String] -> Int32 -> 
-  Bool -> Bool -> IO [String]
-testLoop dbName inputState docs tags testCount isQuestion shouldPrintAnswer =
+  Bool -> Bool -> Int -> IO [String]
+testLoop dbName inputState docs tags testCount isQuestion shouldPrintAnswer flashcardNumber =
   case docs of
   doc:ds ->
     let ObjId questionId = valueAt (labelStr ItemId) doc
     in case isQuestion of
     True -> do
-      putStrLn "--------------------------------------------------------------------------------\n"
+      putStrLn $ "----------------------------  " ++ (show flashcardNumber) ++ "  ----------------------------\n"
       let String question = valueAt (labelStr Question) doc
       showImage dbName questionId QuestionImageFilename doc
       minput <- queryInput inputState (getInputLine $ (unpack question) ++ 
         "\n\n")
-      testLoop dbName inputState docs tags testCount False True
+      testLoop dbName inputState docs tags testCount False True flashcardNumber
     False -> do
       putStrLn ""
       let String answer = valueAt (labelStr Answer) doc
@@ -188,24 +188,24 @@ testLoop dbName inputState docs tags testCount isQuestion shouldPrintAnswer =
       minput <- queryInput inputState (getInputLine ans)
       case minput of
           Just "n" -> answeredQuestionIncorrectly dbName inputState ds
-              tags testCount questionId
+              tags testCount questionId (flashcardNumber + 1)
           Just "e" -> do edit ProdDB doc Flashcard
-                         testLoop dbName inputState docs tags testCount False False
+                         testLoop dbName inputState docs tags testCount False False (flashcardNumber + 1)
           Just _ -> answeredQuestionCorrectly dbName inputState ds tags
-              testCount questionId
+              testCount questionId (flashcardNumber + 1)
   [] -> showFlashcardScore ProdDB tags testCount
                         
 answeredQuestionCorrectly :: DatabaseName -> InputState -> [Document] -> [String] -> Int32 -> 
-  ObjectId -> IO [String]
-answeredQuestionCorrectly dbName inputState docs tags testCount questionId = 
+  ObjectId -> Int -> IO [String]
+answeredQuestionCorrectly dbName inputState docs tags testCount questionId flashcardNumber = 
   do addFlashcardScore ProdDB tags testCount questionId (1 :: Int32)
-     testLoop dbName inputState docs tags testCount True True
+     testLoop dbName inputState docs tags testCount True True flashcardNumber
 
 answeredQuestionIncorrectly :: DatabaseName -> InputState -> [Document] -> [String] -> Int32 -> 
-  ObjectId -> IO [String]
-answeredQuestionIncorrectly dbName inputState docs tags testCount questionId =
+  ObjectId -> Int -> IO [String]
+answeredQuestionIncorrectly dbName inputState docs tags testCount questionId flashcardNumber =
   do addFlashcardScore ProdDB tags testCount questionId (0 :: Int32)
-     testLoop dbName inputState docs tags testCount True True
+     testLoop dbName inputState docs tags testCount True True flashcardNumber
 
 -- | Prints help message
 help :: [String]
