@@ -30,7 +30,7 @@ edit dbName doc docType = do
         modifiableFields = exclude excludedLabels doc
         unmodifiableFields = include excludedLabels doc
     writeFile filename (docToStr modifiableFields)
-    exitSuccess <- system $ "vi " ++ filename
+    exitSuccess <- system $ "vim " ++ filename
     modifiedString <- readFile filename
     putStrLn modifiedString
     let modifiedDoc = merge unmodifiableFields (strToDoc modifiedString)
