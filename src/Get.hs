@@ -172,12 +172,16 @@ get dbName arguments = do
         a -> a
   case args of
     docTypeArg:tailArgs -> case docTypeArg of
-      "types" -> return ["todo", "note", "fc", "goal"]
+      "types" -> return ["todo", "note", "fc"]
       _ -> case tailArgs of 
         "tags":[] -> do
           recordGet dbName (unwords args)
           getTags dbName (getDocType docTypeArg)
-        _ -> do let argus = if tailArgs == [] then "note":[docTypeArg] else args
+        _ -> do let argus = if tailArgs == [] 
+                               then if docTypeArg == "note"
+                                      then ["note"]
+                                      else "note":[docTypeArg] 
+                               else args
                 recordGet dbName (unwords argus)
                 docs <- getDocs dbName argus
                 case docs of
