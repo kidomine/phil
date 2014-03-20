@@ -30,6 +30,7 @@ executable phil
                       , dates ==0.2.*
                       , process ==1.1.*
                       , containers ==0.5.*
+                      , ConfigFile ==1.1.*
   hs-source-dirs:      src, tests
 
 Test-Suite test-phil
@@ -49,3 +50,4 @@ Test-Suite test-phil
                       , dates ==0.2.*
                       , process ==1.1.*
                       , containers ==0.5.*
+                      , ConfigFile ==1.1.*
