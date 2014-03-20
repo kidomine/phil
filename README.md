@@ -98,7 +98,7 @@ fc haskell Define a monad? A structure that represents computations defined as s
 fc 144 What are the 3 main types of error correction?
 fc 229 ai matrix-derivatives What are the 3 main types of error correction?
 Checksum: adds up values in packet (IP, TCP)
-Cyclic Redundancy Check (CRC) (Ethernet): Protects against any 2 bit error, any burst <= c bits long, and any odd number of errors. Can't detect all errors: 2^c chance another packet's CRC matches.
+Cyclic Redundancy Check (CRC) (Ethernet): Protects against any 2 bit error, any burst less than c bits long, and any odd number of errors. Can't detect all errors: 2^c chance another packet's CRC matches.
 MAC (Message Authentication Code): Not as good for error detection as CRC
 
 In that last one, I used vim to edit the flashcard.
@@ -204,6 +204,17 @@ and type can be any item type.
 </pre>
 
 # How to set up
+
+Change this line in `phil/src/Main.hs`:
+	<pre>
+	main = do
+       config <- readConfig "/Users/rose/phil/src/phil.cfg"
+	</pre>
+to
+	<pre>
+	main = do
+       config <- readConfig "/path-to-your-copy-of-the-project/phil/src/phil.cfg"
+	</pre>
 
 I use this bash alias to build and test: `alias cab='cabal configure --enable-tests; cabal build; cabal test`
 
