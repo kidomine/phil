@@ -1,11 +1,5 @@
-#I use this daily.
 ##It's a command line interface to manage notes, flashcards, and todos.
 ### Written in Haskell.
-
-
-I've used this program daily (often hourly!) since I began writing it December of 2013.
-
-I find it super useful. If you'd like me to post a screencast, email me! I expect no one will email me. Haha.
 
 I used to awkwardly enter these things in GUIs (Evernote, Trello, Things, StudyBlue, etc.) and then had to (or never did) triage. This program makes it easy to enter information, and it triages it for me. It's pretty much a DSL that I choose and change as I see fit. For example,
 <pre>
