@@ -236,3 +236,7 @@ function md() {
 </pre>
 
 To restore, run `mongorestore`
+
+### Export flashcards as a json file
+
+mongoexport --dbpath phil/mongoFiles --db db --collection fc --out my/outfile.json

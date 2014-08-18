@@ -10,6 +10,7 @@ temp*
 mongoFiles/
 .DS_Store
 src/Main
+*.cfg
 
 
 repl
